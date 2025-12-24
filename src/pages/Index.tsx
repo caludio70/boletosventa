@@ -5,14 +5,16 @@ import { TicketCard } from '@/components/TicketCard';
 import { ClientSummaryCard } from '@/components/ClientSummaryCard';
 import { TotalsByTicketTable } from '@/components/TotalsByTicketTable';
 import { EmptyState } from '@/components/EmptyState';
-import { searchTicketsOrClient, getClientSummary, getTotalsByTicket } from '@/lib/realData';
-import { Ticket, ClientSummary, TotalByTicket } from '@/lib/types';
+import { ImportExcel } from '@/components/ImportExcel';
+import { searchTicketsOrClient, getClientSummary, getTotalsByTicket, setOperations, getAllOperations } from '@/lib/realData';
+import { Ticket, ClientSummary, TotalByTicket, OperationRow } from '@/lib/types';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { FileText, LayoutList, Table } from 'lucide-react';
+import { FileText, LayoutList, Table, Upload } from 'lucide-react';
 
 export default function Index() {
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeView, setActiveView] = useState<'search' | 'totals'>('search');
+  const [activeView, setActiveView] = useState<'search' | 'totals'>('totals');
+  const [refreshKey, setRefreshKey] = useState(0);
   const [searchResult, setSearchResult] = useState<{
     type: 'ticket' | 'client' | 'not_found' | 'initial';
     tickets: Ticket[];
@@ -38,8 +40,9 @@ export default function Index() {
     }
   };
 
-  const handleShowTotals = () => {
-    setActiveView('totals');
+  const handleImport = (data: Partial<OperationRow>[]) => {
+    setOperations(data);
+    setRefreshKey(prev => prev + 1);
   };
 
   const totalsByTicket = getTotalsByTicket();
@@ -48,32 +51,36 @@ export default function Index() {
     <div className="min-h-screen bg-background">
       <Header />
       
-      <main className="container py-8">
-        <div className="max-w-6xl mx-auto space-y-8">
-          {/* Navigation Tabs */}
-          <div className="flex gap-2 flex-wrap">
-            <button
-              onClick={() => setActiveView('search')}
-              className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
-                activeView === 'search' 
-                  ? 'bg-primary text-primary-foreground' 
-                  : 'bg-muted text-muted-foreground hover:bg-accent hover:text-accent-foreground'
-              }`}
-            >
-              <FileText className="w-4 h-4" />
-              Buscar Operación
-            </button>
-            <button
-              onClick={handleShowTotals}
-              className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
-                activeView === 'totals' 
-                  ? 'bg-primary text-primary-foreground' 
-                  : 'bg-muted text-muted-foreground hover:bg-accent hover:text-accent-foreground'
-              }`}
-            >
-              <Table className="w-4 h-4" />
-              Total por Boleto
-            </button>
+      <main className="container py-6">
+        <div className="max-w-6xl mx-auto space-y-6">
+          {/* Navigation */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="flex gap-2 flex-wrap">
+              <button
+                onClick={() => setActiveView('search')}
+                className={`inline-flex items-center gap-2 px-3 py-1.5 rounded text-sm font-medium transition-colors ${
+                  activeView === 'search' 
+                    ? 'bg-primary text-primary-foreground' 
+                    : 'bg-muted text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                }`}
+              >
+                <FileText className="w-4 h-4" />
+                Buscar Operación
+              </button>
+              <button
+                onClick={() => setActiveView('totals')}
+                className={`inline-flex items-center gap-2 px-3 py-1.5 rounded text-sm font-medium transition-colors ${
+                  activeView === 'totals' 
+                    ? 'bg-primary text-primary-foreground' 
+                    : 'bg-muted text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                }`}
+              >
+                <Table className="w-4 h-4" />
+                Total por Boleto
+              </button>
+            </div>
+
+            <ImportExcel onImport={handleImport} />
           </div>
 
           {activeView === 'search' && (
@@ -93,33 +100,33 @@ export default function Index() {
               )}
 
               {searchResult.type === 'client' && searchResult.tickets.length > 0 && (
-                <div className="space-y-6">
+                <div className="space-y-4">
                   {searchResult.summary && (
                     <ClientSummaryCard summary={searchResult.summary} />
                   )}
 
-                  <div className="bg-card rounded-xl card-shadow overflow-hidden">
+                  <div className="bg-card rounded-lg border border-border card-shadow overflow-hidden">
                     <Tabs defaultValue="summary" className="w-full">
-                      <div className="border-b border-border px-5 pt-4">
-                        <TabsList className="bg-muted/50">
-                          <TabsTrigger value="summary" className="gap-2">
-                            <LayoutList className="w-4 h-4" />
+                      <div className="border-b border-border px-4 pt-3">
+                        <TabsList className="bg-muted/50 h-8">
+                          <TabsTrigger value="summary" className="gap-1.5 text-xs h-7">
+                            <LayoutList className="w-3.5 h-3.5" />
                             Resumen
                           </TabsTrigger>
-                          <TabsTrigger value="details" className="gap-2">
-                            <FileText className="w-4 h-4" />
-                            Detalle por Boleto
+                          <TabsTrigger value="details" className="gap-1.5 text-xs h-7">
+                            <FileText className="w-3.5 h-3.5" />
+                            Detalle
                           </TabsTrigger>
                         </TabsList>
                       </div>
 
-                      <TabsContent value="summary" className="p-5">
-                        <p className="text-muted-foreground text-center py-8">
-                          El resumen de cuenta se muestra arriba. Seleccione "Detalle por Boleto" para ver cada operación.
+                      <TabsContent value="summary" className="p-4">
+                        <p className="text-muted-foreground text-center text-sm py-6">
+                          El resumen se muestra arriba. Seleccione "Detalle" para ver cada boleto.
                         </p>
                       </TabsContent>
 
-                      <TabsContent value="details" className="p-5 space-y-6">
+                      <TabsContent value="details" className="p-4 space-y-4">
                         {searchResult.tickets.map((ticket) => (
                           <TicketCard key={ticket.ticketNumber} ticket={ticket} />
                         ))}
@@ -132,14 +139,14 @@ export default function Index() {
           )}
 
           {activeView === 'totals' && (
-            <TotalsByTicketTable totals={totalsByTicket} />
+            <TotalsByTicketTable key={refreshKey} totals={totalsByTicket} />
           )}
         </div>
       </main>
 
-      <footer className="border-t border-border py-6 mt-12">
-        <div className="container text-center text-sm text-muted-foreground">
-          <p>AUTOBUS S.A. — Sistema de Gestión de Operaciones</p>
+      <footer className="border-t border-border py-4 mt-8">
+        <div className="container text-center text-xs text-muted-foreground">
+          AUTOBUS S.A. — Sistema de Gestión de Operaciones
         </div>
       </footer>
     </div>
