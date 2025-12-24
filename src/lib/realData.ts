@@ -33,9 +33,8 @@ function parseDate(value: string | undefined): Date | null {
   const date = new Date(year, month, day);
   return isNaN(date.getTime()) ? null : date;
 }
-
-// Raw data from Excel
-const rawOperations: Partial<OperationRow>[] = [
+// Raw data from Excel - mutable to allow imports
+let rawOperations: Partial<OperationRow>[] = [
   { boleto: '22283', fecha: new Date(2025, 3, 30), codCliente: '10521', nombreCliente: 'TRANSPORTE PERSONAL S.A.', vendedor: 'Manuel Ugarte', producto: 'O 500 M 1826 Euro V Carroceria Saldivia', cantidad: 1, precioUnitario: 300500, totalOperacion: 300500, usado: '', valorUsado: 0, formaPago: 'Credito', fechaPago: new Date(2025, 3, 30), recibo: '181-662', cuota: '', chequeTransf: 'Credito', vtoCheque: new Date(2025, 3, 30), tipoCambio: 1190, importeARS: 230000299.57, importeUSD: 193277.56, ctaCte: 193277.56, observacion: 'Credito banco ICBC liquidado el dia 30/04/2025. El saldo con cheques' },
   { boleto: '22283', fecha: new Date(2025, 3, 30), codCliente: '10521', nombreCliente: 'TRANSPORTE PERSONAL S.A.', vendedor: 'Manuel Ugarte', producto: '', cantidad: 0, precioUnitario: 0, totalOperacion: 0, formaPago: '', fechaPago: new Date(2025, 8, 4), recibo: '181-895', cuota: '1', chequeTransf: 'Echq', vtoCheque: new Date(2025, 8, 5), tipoCambio: 1370, importeARS: 34600000, importeUSD: 25255.47, ctaCte: 218533.04, observacion: 'Se reconvirtio la operación' },
   { boleto: '22283', fecha: new Date(2025, 3, 30), codCliente: '10521', nombreCliente: 'TRANSPORTE PERSONAL S.A.', vendedor: 'Manuel Ugarte', producto: '', cantidad: 0, precioUnitario: 0, totalOperacion: 0, formaPago: '', fechaPago: new Date(2025, 8, 4), recibo: '181-898', cuota: '4', chequeTransf: 'Retenciones', vtoCheque: new Date(2025, 8, 5), tipoCambio: 1370, importeARS: 8636387.06, importeUSD: 6303.93, ctaCte: 224836.97, observacion: '' },
@@ -325,4 +324,14 @@ export function getAllTickets(): Ticket[] {
   }
   
   return result.sort((a, b) => a.ticketNumber.localeCompare(b.ticketNumber));
+}
+
+// Set operations (for import functionality)
+export function setOperations(data: Partial<OperationRow>[]): void {
+  rawOperations = data;
+}
+
+// Get all operations
+export function getAllOperations(): Partial<OperationRow>[] {
+  return rawOperations;
 }
