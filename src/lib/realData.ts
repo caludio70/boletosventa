@@ -328,10 +328,10 @@ export function getAllTickets(): Ticket[] {
 
 // Set operations (for import functionality)
 export function setOperations(data: Partial<OperationRow>[]): void {
-  rawOperations = data;
+  rawOperations = [...data];
 }
 
-// Get all operations
+// Get all raw operations
 export function getAllOperations(): Partial<OperationRow>[] {
-  return rawOperations;
+  return [...rawOperations];
 }
