@@ -19,9 +19,10 @@ export function SearchBox({ onSearch, isLoading }: SearchBoxProps) {
   };
 
   const quickSearches = [
-    { label: 'BOL-2024-001', icon: FileText },
-    { label: 'CLI-001', icon: Users },
-    { label: 'CLI-002', icon: Users },
+    { label: '22283', icon: FileText },
+    { label: '22297', icon: FileText },
+    { label: '10521', icon: Users },
+    { label: '125846', icon: Users },
   ];
 
   return (
