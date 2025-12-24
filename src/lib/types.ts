@@ -1,3 +1,33 @@
+export interface OperationRow {
+  boleto: string;
+  fecha: Date;
+  codCliente: string;
+  nombreCliente: string;
+  vendedor: string;
+  producto: string;
+  cantidad: number;
+  precioUnitario: number;
+  totalOperacion: number;
+  usado: string;
+  valorUsado: number;
+  chasisMotor: string;
+  diferenciaCobrar: number;
+  formaPago: string;
+  fechaPago: Date | null;
+  recibo: string;
+  cuota: string;
+  chequeTransf: string;
+  vtoCheque: Date | null;
+  tipoCambio: number;
+  importeARS: number;
+  importeUSD: number;
+  ctaCte: number;
+  saldoFinal: number;
+  tcSaldo: number;
+  saldoPesos: number;
+  observacion: string;
+}
+
 export interface Product {
   id: string;
   description: string;
@@ -50,10 +80,20 @@ export interface ClientSummary {
 
 export interface TicketSummary {
   ticketNumber: string;
+  clientName: string;
   saleUSD: number;
   usedUSD: number;
   initialBalance: number;
   paymentsUSD: number;
   finalBalance: number;
   status: 'saldado' | 'pendiente' | 'proceso';
+}
+
+export interface TotalByTicket {
+  clientName: string;
+  ticketNumber: string;
+  ventaUSD: number;
+  usadosUSD: number;
+  pagosUSD: number;
+  saldoFinal: number;
 }
