@@ -1,6 +1,8 @@
 import { ClientSummary } from '@/lib/types';
 import { formatCurrency, formatDate } from '@/lib/formatters';
-import { User, FileText, CheckCircle2, AlertCircle, Clock } from 'lucide-react';
+import { exportClientSummaryToExcel, exportClientSummaryToPDF } from '@/lib/exportUtils';
+import { User, FileText, CheckCircle2, AlertCircle, Clock, FileSpreadsheet } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 interface ClientSummaryCardProps {
   summary: ClientSummary;
@@ -39,7 +41,27 @@ export function ClientSummaryCard({ summary }: ClientSummaryCardProps) {
       <div className="header-gradient text-primary-foreground p-5">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold tracking-wide">RESUMEN DE CUENTA</h2>
-          <span className="text-sm opacity-80">{formatDate(new Date())}</span>
+          <div className="flex items-center gap-2">
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={() => exportClientSummaryToExcel(summary)}
+              className="text-primary-foreground/80 hover:text-primary-foreground hover:bg-primary-foreground/10 gap-1.5"
+            >
+              <FileSpreadsheet className="w-4 h-4" />
+              <span className="hidden sm:inline">Excel</span>
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={() => exportClientSummaryToPDF(summary)}
+              className="text-primary-foreground/80 hover:text-primary-foreground hover:bg-primary-foreground/10 gap-1.5"
+            >
+              <FileText className="w-4 h-4" />
+              <span className="hidden sm:inline">PDF</span>
+            </Button>
+            <span className="text-sm opacity-80 ml-2">{formatDate(new Date())}</span>
+          </div>
         </div>
       </div>
 

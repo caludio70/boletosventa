@@ -1,6 +1,8 @@
 import { Ticket } from '@/lib/types';
 import { formatCurrency, formatDate } from '@/lib/formatters';
-import { Calendar, CreditCard, MessageSquare, Package, Receipt, TrendingDown } from 'lucide-react';
+import { exportTicketToExcel, exportTicketToPDF } from '@/lib/exportUtils';
+import { Calendar, CreditCard, MessageSquare, Package, Receipt, TrendingDown, FileSpreadsheet, FileText } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 interface TicketCardProps {
   ticket: Ticket;
@@ -11,9 +13,31 @@ export function TicketCard({ ticket }: TicketCardProps) {
     <div className="bg-card rounded-xl card-shadow-lg overflow-hidden animate-slide-up">
       {/* Header */}
       <div className="header-gradient text-primary-foreground p-5">
-        <h2 className="text-lg font-semibold tracking-wide">
-          FICHA DE OPERACIÓN — BOLETO N° {ticket.ticketNumber}
-        </h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold tracking-wide">
+            FICHA DE OPERACIÓN — BOLETO N° {ticket.ticketNumber}
+          </h2>
+          <div className="flex items-center gap-2">
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={() => exportTicketToExcel(ticket)}
+              className="text-primary-foreground/80 hover:text-primary-foreground hover:bg-primary-foreground/10 gap-1.5"
+            >
+              <FileSpreadsheet className="w-4 h-4" />
+              <span className="hidden sm:inline">Excel</span>
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={() => exportTicketToPDF(ticket)}
+              className="text-primary-foreground/80 hover:text-primary-foreground hover:bg-primary-foreground/10 gap-1.5"
+            >
+              <FileText className="w-4 h-4" />
+              <span className="hidden sm:inline">PDF</span>
+            </Button>
+          </div>
+        </div>
       </div>
 
       {/* Client Info */}
