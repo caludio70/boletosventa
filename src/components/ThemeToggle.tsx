@@ -26,7 +26,7 @@ export function ThemeToggle() {
       variant="outline"
       size="icon"
       onClick={toggleTheme}
-      className="h-9 w-9 border-primary-foreground/30 bg-primary-foreground/10 text-primary-foreground hover:bg-primary-foreground/20"
+      className="h-10 w-10 border-2 border-white/50 bg-white/20 text-white hover:bg-white/30 hover:border-white/70 shadow-lg"
     >
       {isDark ? (
         <Sun className="h-5 w-5" />
