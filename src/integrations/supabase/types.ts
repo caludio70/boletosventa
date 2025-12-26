@@ -14,7 +14,105 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      operations: {
+        Row: {
+          boleto: string
+          cantidad: number | null
+          chasis_motor: string | null
+          cheque_transf: string | null
+          cod_cliente: string | null
+          created_at: string
+          cta_cte: number | null
+          cuota: string | null
+          diferencia_cobrar: number | null
+          fecha: string | null
+          fecha_pago: string | null
+          forma_pago: string | null
+          id: string
+          importe_ars: number | null
+          importe_usd: number | null
+          nombre_cliente: string | null
+          observacion: string | null
+          precio_unitario: number | null
+          producto: string | null
+          recibo: string | null
+          saldo_final: number | null
+          saldo_pesos: number | null
+          tc_saldo: number | null
+          tipo_cambio: number | null
+          total_operacion: number | null
+          updated_at: string
+          usado: string | null
+          valor_usado: number | null
+          vendedor: string | null
+          vto_cheque: string | null
+        }
+        Insert: {
+          boleto: string
+          cantidad?: number | null
+          chasis_motor?: string | null
+          cheque_transf?: string | null
+          cod_cliente?: string | null
+          created_at?: string
+          cta_cte?: number | null
+          cuota?: string | null
+          diferencia_cobrar?: number | null
+          fecha?: string | null
+          fecha_pago?: string | null
+          forma_pago?: string | null
+          id?: string
+          importe_ars?: number | null
+          importe_usd?: number | null
+          nombre_cliente?: string | null
+          observacion?: string | null
+          precio_unitario?: number | null
+          producto?: string | null
+          recibo?: string | null
+          saldo_final?: number | null
+          saldo_pesos?: number | null
+          tc_saldo?: number | null
+          tipo_cambio?: number | null
+          total_operacion?: number | null
+          updated_at?: string
+          usado?: string | null
+          valor_usado?: number | null
+          vendedor?: string | null
+          vto_cheque?: string | null
+        }
+        Update: {
+          boleto?: string
+          cantidad?: number | null
+          chasis_motor?: string | null
+          cheque_transf?: string | null
+          cod_cliente?: string | null
+          created_at?: string
+          cta_cte?: number | null
+          cuota?: string | null
+          diferencia_cobrar?: number | null
+          fecha?: string | null
+          fecha_pago?: string | null
+          forma_pago?: string | null
+          id?: string
+          importe_ars?: number | null
+          importe_usd?: number | null
+          nombre_cliente?: string | null
+          observacion?: string | null
+          precio_unitario?: number | null
+          producto?: string | null
+          recibo?: string | null
+          saldo_final?: number | null
+          saldo_pesos?: number | null
+          tc_saldo?: number | null
+          tipo_cambio?: number | null
+          total_operacion?: number | null
+          updated_at?: string
+          usado?: string | null
+          valor_usado?: number | null
+          vendedor?: string | null
+          vto_cheque?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

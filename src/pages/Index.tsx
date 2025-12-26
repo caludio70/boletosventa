@@ -7,21 +7,23 @@ import { TotalsByTicketTable } from '@/components/TotalsByTicketTable';
 import { PaymentProjections } from '@/components/PaymentProjections';
 import { EmptyState } from '@/components/EmptyState';
 import { ImportExcel } from '@/components/ImportExcel';
-import { searchTicketsOrClient, getClientSummary, getTotalsByTicket, setOperations, getAllOperations } from '@/lib/realData';
-import { Ticket, ClientSummary, TotalByTicket, OperationRow } from '@/lib/types';
+import { searchTicketsOrClient, getClientSummary, getTotalsByTicket } from '@/lib/realData';
+import { Ticket, ClientSummary, OperationRow } from '@/lib/types';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { FileText, LayoutList, Table, Upload, Calendar } from 'lucide-react';
+import { FileText, LayoutList, Table, Calendar, Loader2 } from 'lucide-react';
+import { useOperationsData } from '@/hooks/useOperationsData';
 
 export default function Index() {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeView, setActiveView] = useState<'search' | 'totals' | 'projections'>('totals');
-  const [refreshKey, setRefreshKey] = useState(0);
   const [searchResult, setSearchResult] = useState<{
     type: 'ticket' | 'client' | 'not_found' | 'initial';
     tickets: Ticket[];
     clientName?: string;
     summary?: ClientSummary | null;
   }>({ type: 'initial', tickets: [] });
+
+  const { isLoading, isSaving, importData, refreshKey } = useOperationsData();
 
   const handleSearch = (query: string) => {
     setSearchQuery(query);
@@ -41,12 +43,22 @@ export default function Index() {
     }
   };
 
-  const handleImport = (data: Partial<OperationRow>[]) => {
-    setOperations(data);
-    setRefreshKey(prev => prev + 1);
+  const handleImport = async (data: Partial<OperationRow>[]) => {
+    await importData(data);
   };
 
   const totalsByTicket = getTotalsByTicket();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-muted-foreground">Cargando datos...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -92,7 +104,7 @@ export default function Index() {
               </button>
             </div>
 
-            <ImportExcel onImport={handleImport} />
+            <ImportExcel onImport={handleImport} isLoading={isSaving} />
           </div>
 
           {activeView === 'search' && (
