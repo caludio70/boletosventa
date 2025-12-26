@@ -9,10 +9,19 @@ import {
   getFuturePayments, 
   getPaymentsByMonth, 
   getPendingBalances,
+  getTicketByNumber,
   FuturePayment,
   MonthlyPaymentSummary 
 } from '@/lib/realData';
+import { Ticket } from '@/lib/types';
 import { formatCurrency, formatDate } from '@/lib/formatters';
+import { TicketCard } from '@/components/TicketCard';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { 
   Calendar, 
   TrendingUp, 
@@ -36,6 +45,8 @@ import {
 
 export function PaymentProjections() {
   const [expandedMonth, setExpandedMonth] = useState<string | null>(null);
+  const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
+  const [isTicketModalOpen, setIsTicketModalOpen] = useState(false);
   
   const futurePayments = useMemo(() => getFuturePayments(), []);
   const monthlyPayments = useMemo(() => getPaymentsByMonth(), []);
@@ -117,6 +128,14 @@ export function PaymentProjections() {
   
   const toggleMonth = (key: string) => {
     setExpandedMonth(expandedMonth === key ? null : key);
+  };
+
+  const handleTicketClick = (ticketNumber: string) => {
+    const ticket = getTicketByNumber(ticketNumber);
+    if (ticket) {
+      setSelectedTicket(ticket);
+      setIsTicketModalOpen(true);
+    }
   };
   
   return (
@@ -489,10 +508,15 @@ export function PaymentProjections() {
                           <TableCell>
                             <div className="flex flex-wrap gap-1">
                               {client.tickets.map(t => (
-                                <Badge key={t} variant="outline" className="text-xs">
-                                  <FileText className="h-3 w-3 mr-1" />
+                                <button
+                                  key={t}
+                                  onClick={() => handleTicketClick(t)}
+                                  className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-md border border-border bg-background hover:bg-primary hover:text-primary-foreground hover:border-primary transition-colors cursor-pointer"
+                                  title={`Ver detalle del boleto ${t}`}
+                                >
+                                  <FileText className="h-3 w-3" />
                                   {t}
-                                </Badge>
+                                </button>
                               ))}
                             </div>
                           </TableCell>
@@ -515,6 +539,19 @@ export function PaymentProjections() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Ticket Detail Modal */}
+      <Dialog open={isTicketModalOpen} onOpenChange={setIsTicketModalOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              Detalle del Boleto {selectedTicket?.ticketNumber}
+            </DialogTitle>
+          </DialogHeader>
+          {selectedTicket && <TicketCard ticket={selectedTicket} />}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
