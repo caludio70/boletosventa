@@ -1,18 +1,25 @@
 import { useState, useMemo } from 'react';
 import { TotalByTicket } from '@/lib/types';
 import { formatCurrency } from '@/lib/formatters';
-import { exportToExcel, exportToPDF } from '@/lib/exportUtils';
+import { exportToExcel, exportToPDF, exportTicketToExcel, exportTicketToPDF } from '@/lib/exportUtils';
+import { getTicketByNumber } from '@/lib/realData';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { 
   Search, 
-  Download, 
   FileSpreadsheet, 
   FileText,
   X,
   ChevronUp,
   ChevronDown,
+  MoreHorizontal,
 } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 interface TotalsByTicketTableProps {
   totals: TotalByTicket[];
@@ -87,6 +94,17 @@ export function TotalsByTicketTable({ totals }: TotalsByTicketTableProps) {
   };
 
   const hasFilters = ticketFilter || clientFilter;
+
+  const handleExportTicket = (ticketNumber: string, format: 'excel' | 'pdf') => {
+    const ticket = getTicketByNumber(ticketNumber);
+    if (ticket) {
+      if (format === 'excel') {
+        exportTicketToExcel(ticket);
+      } else {
+        exportTicketToPDF(ticket);
+      }
+    }
+  };
 
   const getStatusBadge = (saldo: number) => {
     if (Math.abs(saldo) < 100) {
@@ -199,6 +217,9 @@ export function TotalsByTicketTable({ totals }: TotalsByTicketTableProps) {
               <th className="px-4 py-3 text-center font-medium text-muted-foreground">
                 Estado
               </th>
+              <th className="px-4 py-3 text-center font-medium text-muted-foreground">
+                Acciones
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -235,6 +256,25 @@ export function TotalsByTicketTable({ totals }: TotalsByTicketTableProps) {
                 <td className="px-4 py-2.5 text-center">
                   {getStatusBadge(row.saldoFinal)}
                 </td>
+                <td className="px-4 py-2.5 text-center">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
+                        <MoreHorizontal className="w-4 h-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => handleExportTicket(row.ticketNumber, 'excel')}>
+                        <FileSpreadsheet className="w-4 h-4 mr-2" />
+                        Exportar Excel
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleExportTicket(row.ticketNumber, 'pdf')}>
+                        <FileText className="w-4 h-4 mr-2" />
+                        Exportar PDF
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </td>
               </tr>
             ))}
           </tbody>
@@ -256,6 +296,7 @@ export function TotalsByTicketTable({ totals }: TotalsByTicketTableProps) {
               <td className="px-4 py-3 text-right tabular-nums text-base font-semibold">
                 {formatCurrency(grandTotal.saldoFinal)}
               </td>
+              <td className="px-4 py-3"></td>
               <td className="px-4 py-3"></td>
             </tr>
           </tfoot>
