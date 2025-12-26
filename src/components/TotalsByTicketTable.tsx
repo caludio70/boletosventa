@@ -1,10 +1,12 @@
 import { useState, useMemo } from 'react';
-import { TotalByTicket } from '@/lib/types';
+import { TotalByTicket, Ticket, ClientSummary } from '@/lib/types';
 import { formatCurrency } from '@/lib/formatters';
 import { exportToExcel, exportToPDF, exportTicketToExcel, exportTicketToPDF } from '@/lib/exportUtils';
-import { getTicketByNumber } from '@/lib/realData';
+import { getTicketByNumber, getTicketsByClientCode, getClientSummary } from '@/lib/realData';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { TicketCard } from '@/components/TicketCard';
+import { ClientSummaryCard } from '@/components/ClientSummaryCard';
 import { 
   Search, 
   FileSpreadsheet, 
@@ -13,6 +15,7 @@ import {
   ChevronUp,
   ChevronDown,
   MoreHorizontal,
+  ArrowLeft,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -20,6 +23,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 interface TotalsByTicketTableProps {
   totals: TotalByTicket[];
@@ -33,6 +42,12 @@ export function TotalsByTicketTable({ totals }: TotalsByTicketTableProps) {
   const [clientFilter, setClientFilter] = useState('');
   const [sortField, setSortField] = useState<SortField>('ticketNumber');
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
+  
+  // Modal states
+  const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
+  const [selectedClient, setSelectedClient] = useState<{ tickets: Ticket[]; summary: ClientSummary | null } | null>(null);
+  const [isTicketModalOpen, setIsTicketModalOpen] = useState(false);
+  const [isClientModalOpen, setIsClientModalOpen] = useState(false);
 
   // Filter and sort data
   const filteredData = useMemo(() => {
@@ -113,6 +128,32 @@ export function TotalsByTicketTable({ totals }: TotalsByTicketTableProps) {
       return <span className="status-badge status-pendiente">Pendiente</span>;
     }
     return <span className="status-badge status-proceso">En proceso</span>;
+  };
+
+  const handleTicketClick = (ticketNumber: string) => {
+    const ticket = getTicketByNumber(ticketNumber);
+    if (ticket) {
+      setSelectedTicket(ticket);
+      setIsTicketModalOpen(true);
+    }
+  };
+
+  const handleClientClick = (clientName: string) => {
+    // Find the client code from the totals
+    const clientRow = totals.find(t => t.clientName === clientName);
+    if (clientRow) {
+      // Get client code from raw operations
+      const clientTickets = totals
+        .filter(t => t.clientName === clientName)
+        .map(t => getTicketByNumber(t.ticketNumber))
+        .filter((t): t is Ticket => t !== undefined);
+      
+      if (clientTickets.length > 0) {
+        const summary = getClientSummary(clientTickets);
+        setSelectedClient({ tickets: clientTickets, summary });
+        setIsClientModalOpen(true);
+      }
+    }
   };
 
   return (
@@ -229,12 +270,22 @@ export function TotalsByTicketTable({ totals }: TotalsByTicketTableProps) {
                 className={`${idx % 2 === 0 ? 'bg-card' : 'bg-table-stripe'} hover:bg-accent/50 transition-colors border-b border-border/50`}
               >
                 <td className="px-4 py-2.5 text-foreground">
-                  <span className="line-clamp-1" title={row.clientName}>
+                  <button
+                    onClick={() => handleClientClick(row.clientName)}
+                    className="line-clamp-1 text-left hover:text-primary hover:underline transition-colors cursor-pointer"
+                    title={`Ver todos los boletos de ${row.clientName}`}
+                  >
                     {row.clientName}
-                  </span>
+                  </button>
                 </td>
-                <td className="px-4 py-2.5 text-center font-mono text-foreground font-medium">
-                  {row.ticketNumber}
+                <td className="px-4 py-2.5 text-center">
+                  <button
+                    onClick={() => handleTicketClick(row.ticketNumber)}
+                    className="font-mono text-foreground font-medium hover:text-primary hover:underline transition-colors cursor-pointer"
+                    title={`Ver detalle del boleto ${row.ticketNumber}`}
+                  >
+                    {row.ticketNumber}
+                  </button>
                 </td>
                 <td className="px-4 py-2.5 text-right tabular-nums text-foreground">
                   {formatCurrency(row.ventaUSD)}
@@ -330,6 +381,43 @@ export function TotalsByTicketTable({ totals }: TotalsByTicketTableProps) {
           </p>
         </div>
       </div>
+
+      {/* Ticket Detail Modal */}
+      <Dialog open={isTicketModalOpen} onOpenChange={setIsTicketModalOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              Detalle del Boleto {selectedTicket?.ticketNumber}
+            </DialogTitle>
+          </DialogHeader>
+          {selectedTicket && <TicketCard ticket={selectedTicket} />}
+        </DialogContent>
+      </Dialog>
+
+      {/* Client Detail Modal */}
+      <Dialog open={isClientModalOpen} onOpenChange={setIsClientModalOpen}>
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              Boletos de {selectedClient?.tickets[0]?.clientName}
+            </DialogTitle>
+          </DialogHeader>
+          {selectedClient && (
+            <div className="space-y-4">
+              {selectedClient.summary && (
+                <ClientSummaryCard summary={selectedClient.summary} />
+              )}
+              <div className="space-y-4">
+                {selectedClient.tickets.map((ticket) => (
+                  <TicketCard key={ticket.ticketNumber} ticket={ticket} />
+                ))}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
