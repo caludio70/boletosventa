@@ -335,3 +335,141 @@ export function setOperations(data: Partial<OperationRow>[]): void {
 export function getAllOperations(): Partial<OperationRow>[] {
   return [...rawOperations];
 }
+
+// Interface for future payments
+export interface FuturePayment {
+  dueDate: Date;
+  clientCode: string;
+  clientName: string;
+  ticketNumber: string;
+  detail: string;
+  amountARS: number;
+  amountUSD: number;
+  exchangeRate: number;
+}
+
+// Interface for monthly summary
+export interface MonthlyPaymentSummary {
+  month: string;
+  year: number;
+  monthNumber: number;
+  totalARS: number;
+  totalUSD: number;
+  paymentCount: number;
+  payments: FuturePayment[];
+}
+
+// Get future payments (checks with due date in the future)
+export function getFuturePayments(): FuturePayment[] {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
+  const futurePayments: FuturePayment[] = [];
+  
+  for (const op of rawOperations) {
+    // Check if there's a check due date in the future
+    if (op.vtoCheque && op.vtoCheque > today && op.importeUSD && op.importeUSD > 0) {
+      futurePayments.push({
+        dueDate: op.vtoCheque,
+        clientCode: op.codCliente || '',
+        clientName: op.nombreCliente || '',
+        ticketNumber: op.boleto || '',
+        detail: op.chequeTransf || 'Cheque',
+        amountARS: op.importeARS || 0,
+        amountUSD: op.importeUSD || 0,
+        exchangeRate: op.tipoCambio || 0,
+      });
+    }
+  }
+  
+  // Sort by due date
+  futurePayments.sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime());
+  
+  return futurePayments;
+}
+
+// Get payments grouped by month (both past and future)
+export function getPaymentsByMonth(): MonthlyPaymentSummary[] {
+  const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 
+                      'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+  
+  const monthlyMap = new Map<string, MonthlyPaymentSummary>();
+  
+  for (const op of rawOperations) {
+    // Use payment date or check due date
+    const paymentDate = op.fechaPago || op.vtoCheque;
+    
+    if (paymentDate && op.importeUSD && op.importeUSD > 0) {
+      const year = paymentDate.getFullYear();
+      const monthNum = paymentDate.getMonth();
+      const key = `${year}-${monthNum}`;
+      
+      if (!monthlyMap.has(key)) {
+        monthlyMap.set(key, {
+          month: monthNames[monthNum],
+          year,
+          monthNumber: monthNum,
+          totalARS: 0,
+          totalUSD: 0,
+          paymentCount: 0,
+          payments: [],
+        });
+      }
+      
+      const summary = monthlyMap.get(key)!;
+      summary.totalARS += op.importeARS || 0;
+      summary.totalUSD += op.importeUSD || 0;
+      summary.paymentCount += 1;
+      summary.payments.push({
+        dueDate: paymentDate,
+        clientCode: op.codCliente || '',
+        clientName: op.nombreCliente || '',
+        ticketNumber: op.boleto || '',
+        detail: op.chequeTransf || 'Pago',
+        amountARS: op.importeARS || 0,
+        amountUSD: op.importeUSD || 0,
+        exchangeRate: op.tipoCambio || 0,
+      });
+    }
+  }
+  
+  // Convert to array and sort by year/month
+  const result = Array.from(monthlyMap.values());
+  result.sort((a, b) => {
+    if (a.year !== b.year) return a.year - b.year;
+    return a.monthNumber - b.monthNumber;
+  });
+  
+  return result;
+}
+
+// Get pending balances by client
+export function getPendingBalances(): { clientCode: string; clientName: string; totalPending: number; tickets: string[] }[] {
+  const totals = getTotalsByTicket();
+  const clientMap = new Map<string, { clientName: string; totalPending: number; tickets: string[] }>();
+  
+  for (const total of totals) {
+    if (total.saldoFinal > 0) {
+      const clientCode = rawOperations.find(op => op.boleto === total.ticketNumber)?.codCliente || '';
+      
+      if (!clientMap.has(clientCode)) {
+        clientMap.set(clientCode, {
+          clientName: total.clientName,
+          totalPending: 0,
+          tickets: [],
+        });
+      }
+      
+      const client = clientMap.get(clientCode)!;
+      client.totalPending += total.saldoFinal;
+      client.tickets.push(total.ticketNumber);
+    }
+  }
+  
+  return Array.from(clientMap.entries())
+    .map(([clientCode, data]) => ({
+      clientCode,
+      ...data,
+    }))
+    .sort((a, b) => b.totalPending - a.totalPending);
+}
