@@ -4,16 +4,17 @@ import { SearchBox } from '@/components/SearchBox';
 import { TicketCard } from '@/components/TicketCard';
 import { ClientSummaryCard } from '@/components/ClientSummaryCard';
 import { TotalsByTicketTable } from '@/components/TotalsByTicketTable';
+import { PaymentProjections } from '@/components/PaymentProjections';
 import { EmptyState } from '@/components/EmptyState';
 import { ImportExcel } from '@/components/ImportExcel';
 import { searchTicketsOrClient, getClientSummary, getTotalsByTicket, setOperations, getAllOperations } from '@/lib/realData';
 import { Ticket, ClientSummary, TotalByTicket, OperationRow } from '@/lib/types';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { FileText, LayoutList, Table, Upload } from 'lucide-react';
+import { FileText, LayoutList, Table, Upload, Calendar } from 'lucide-react';
 
 export default function Index() {
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeView, setActiveView] = useState<'search' | 'totals'>('totals');
+  const [activeView, setActiveView] = useState<'search' | 'totals' | 'projections'>('totals');
   const [refreshKey, setRefreshKey] = useState(0);
   const [searchResult, setSearchResult] = useState<{
     type: 'ticket' | 'client' | 'not_found' | 'initial';
@@ -78,6 +79,17 @@ export default function Index() {
                 <Table className="w-4 h-4" />
                 Total por Boleto
               </button>
+              <button
+                onClick={() => setActiveView('projections')}
+                className={`inline-flex items-center gap-2 px-3 py-1.5 rounded text-sm font-medium transition-colors ${
+                  activeView === 'projections' 
+                    ? 'bg-primary text-primary-foreground' 
+                    : 'bg-muted text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                }`}
+              >
+                <Calendar className="w-4 h-4" />
+                Proyecciones
+              </button>
             </div>
 
             <ImportExcel onImport={handleImport} />
@@ -140,6 +152,10 @@ export default function Index() {
 
           {activeView === 'totals' && (
             <TotalsByTicketTable key={refreshKey} totals={totalsByTicket} />
+          )}
+
+          {activeView === 'projections' && (
+            <PaymentProjections key={refreshKey} />
           )}
         </div>
       </main>
