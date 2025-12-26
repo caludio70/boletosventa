@@ -5,11 +5,12 @@ import { parseExcelFile } from '@/lib/excelParser';
 import { OperationRow } from '@/lib/types';
 
 interface ImportExcelProps {
-  onImport: (data: Partial<OperationRow>[]) => void;
+  onImport: (data: Partial<OperationRow>[]) => void | Promise<void>;
+  isLoading?: boolean;
 }
 
-export function ImportExcel({ onImport }: ImportExcelProps) {
-  const [isLoading, setIsLoading] = useState(false);
+export function ImportExcel({ onImport, isLoading: externalLoading }: ImportExcelProps) {
+  const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -35,7 +36,7 @@ export function ImportExcel({ onImport }: ImportExcelProps) {
       return;
     }
 
-    setIsLoading(true);
+    setIsProcessing(true);
     setError(null);
     setSuccess(null);
 
@@ -50,8 +51,8 @@ export function ImportExcel({ onImport }: ImportExcelProps) {
       // Count unique tickets
       const uniqueTickets = new Set(data.map(row => row.boleto)).size;
       
-      onImport(data);
-      setSuccess(`Se importaron ${data.length} registros (${uniqueTickets} boletos)`);
+      await onImport(data);
+      setSuccess(`Se importaron ${data.length} registros (${uniqueTickets} boletos) y se guardaron en la base de datos`);
       
       // Clear file input
       if (fileInputRef.current) {
@@ -61,7 +62,7 @@ export function ImportExcel({ onImport }: ImportExcelProps) {
       console.error('Import error:', err);
       setError('Error al procesar el archivo. Verifique el formato.');
     } finally {
-      setIsLoading(false);
+      setIsProcessing(false);
     }
   };
 
@@ -83,13 +84,13 @@ export function ImportExcel({ onImport }: ImportExcelProps) {
         variant="outline"
         size="sm"
         onClick={handleClick}
-        disabled={isLoading}
+        disabled={isProcessing || externalLoading}
         className="gap-2"
       >
-        {isLoading ? (
+        {isProcessing || externalLoading ? (
           <>
             <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-            Importando...
+            {externalLoading ? 'Guardando...' : 'Importando...'}
           </>
         ) : (
           <>
