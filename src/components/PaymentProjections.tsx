@@ -60,6 +60,60 @@ export function PaymentProjections() {
     total: m.totalUSD,
     count: m.paymentCount,
   }));
+
+  // Build client x month matrix for the table
+  const clientMonthlyData = useMemo(() => {
+    // Get unique clients from future payments
+    const clientMap = new Map<string, { clientName: string; months: Map<string, number>; total: number }>();
+    
+    for (const payment of futurePayments) {
+      const monthKey = `${payment.dueDate.getFullYear()}-${payment.dueDate.getMonth()}`;
+      
+      if (!clientMap.has(payment.clientCode)) {
+        clientMap.set(payment.clientCode, {
+          clientName: payment.clientName,
+          months: new Map(),
+          total: 0,
+        });
+      }
+      
+      const client = clientMap.get(payment.clientCode)!;
+      const currentAmount = client.months.get(monthKey) || 0;
+      client.months.set(monthKey, currentAmount + payment.amountUSD);
+      client.total += payment.amountUSD;
+    }
+    
+    return Array.from(clientMap.entries())
+      .map(([code, data]) => ({
+        clientCode: code,
+        clientName: data.clientName,
+        months: data.months,
+        total: data.total,
+      }))
+      .sort((a, b) => b.total - a.total);
+  }, [futurePayments]);
+
+  // Get month columns for the table
+  const monthColumns = useMemo(() => {
+    return futureMonths.map(m => ({
+      key: `${m.year}-${m.monthNumber}`,
+      label: `${m.month.substring(0, 3)} ${m.year}`,
+      month: m.month,
+      year: m.year,
+    }));
+  }, [futureMonths]);
+
+  // Calculate column totals
+  const columnTotals = useMemo(() => {
+    const totals = new Map<string, number>();
+    for (const client of clientMonthlyData) {
+      for (const [monthKey, amount] of client.months) {
+        const current = totals.get(monthKey) || 0;
+        totals.set(monthKey, current + amount);
+      }
+    }
+    return totals;
+  }, [clientMonthlyData]);
   
   const toggleMonth = (key: string) => {
     setExpandedMonth(expandedMonth === key ? null : key);
@@ -202,6 +256,76 @@ export function PaymentProjections() {
         
         {/* Monthly Summary Tab */}
         <TabsContent value="monthly" className="mt-4 space-y-4">
+          {/* Monthly Totals Table by Client */}
+          {clientMonthlyData.length > 0 && monthColumns.length > 0 && (
+            <Card className="bg-card border-border card-shadow">
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Calendar className="h-5 w-5 text-primary" />
+                  Cobros por Cliente y Mes
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ScrollArea className="w-full">
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="bg-primary text-primary-foreground hover:bg-primary">
+                          <TableHead className="text-primary-foreground sticky left-0 bg-primary min-w-[200px]">
+                            Cliente
+                          </TableHead>
+                          {monthColumns.map(col => (
+                            <TableHead key={col.key} className="text-primary-foreground text-right min-w-[120px]">
+                              {col.label}
+                            </TableHead>
+                          ))}
+                          <TableHead className="text-primary-foreground text-right min-w-[130px] font-bold">
+                            Total
+                          </TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {clientMonthlyData.map((client, idx) => (
+                          <TableRow key={client.clientCode} className={idx % 2 === 0 ? 'bg-card' : 'bg-table-stripe'}>
+                            <TableCell className="sticky left-0 bg-inherit font-medium max-w-[200px] truncate">
+                              {client.clientName}
+                            </TableCell>
+                            {monthColumns.map(col => {
+                              const amount = client.months.get(col.key) || 0;
+                              return (
+                                <TableCell key={col.key} className="text-right tabular-nums">
+                                  {amount > 0 ? formatCurrency(amount) : '—'}
+                                </TableCell>
+                              );
+                            })}
+                            <TableCell className="text-right tabular-nums font-bold">
+                              {formatCurrency(client.total)}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                      <tfoot>
+                        <TableRow className="bg-muted font-bold border-t-2 border-border">
+                          <TableCell className="sticky left-0 bg-muted font-bold">
+                            TOTALES
+                          </TableCell>
+                          {monthColumns.map(col => (
+                            <TableCell key={col.key} className="text-right tabular-nums font-bold">
+                              {formatCurrency(columnTotals.get(col.key) || 0)}
+                            </TableCell>
+                          ))}
+                          <TableCell className="text-right tabular-nums font-bold text-lg">
+                            {formatCurrency(totalFutureUSD)}
+                          </TableCell>
+                        </TableRow>
+                      </tfoot>
+                    </Table>
+                  </div>
+                </ScrollArea>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Chart */}
           {chartData.length > 0 && (
             <Card className="bg-card border-border card-shadow">
@@ -212,7 +336,7 @@ export function PaymentProjections() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="h-[300px]">
+                <div className="h-[250px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={chartData}>
                       <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
