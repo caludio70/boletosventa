@@ -1,9 +1,9 @@
 import { Ticket } from '@/lib/types';
 import { formatCurrency, formatDate } from '@/lib/formatters';
 import { exportTicketToExcel, exportTicketToPDF } from '@/lib/exportUtils';
-import { Calendar, CreditCard, MessageSquare, Package, Receipt, TrendingDown, FileSpreadsheet, FileText } from 'lucide-react';
+import { Calendar, CreditCard, MessageSquare, Package, Receipt, TrendingDown, FileSpreadsheet, FileText as FileTextIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-
+import { PDFViewer } from '@/components/PDFViewer';
 interface TicketCardProps {
   ticket: Ticket;
 }
@@ -18,6 +18,7 @@ export function TicketCard({ ticket }: TicketCardProps) {
             FICHA DE OPERACIÓN — BOLETO N° {ticket.ticketNumber}
           </h2>
           <div className="flex items-center gap-2">
+            <PDFViewer ticketNumber={ticket.ticketNumber} />
             <Button 
               variant="ghost" 
               size="sm"
@@ -33,7 +34,7 @@ export function TicketCard({ ticket }: TicketCardProps) {
               onClick={() => exportTicketToPDF(ticket)}
               className="text-primary-foreground/80 hover:text-primary-foreground hover:bg-primary-foreground/10 gap-1.5"
             >
-              <FileText className="w-4 h-4" />
+              <FileTextIcon className="w-4 h-4" />
               <span className="hidden sm:inline">PDF</span>
             </Button>
           </div>
