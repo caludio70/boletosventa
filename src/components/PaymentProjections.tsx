@@ -284,63 +284,61 @@ export function PaymentProjections() {
                   Cobros por Cliente y Mes
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <ScrollArea className="w-full">
-                  <div className="overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow className="bg-primary text-primary-foreground hover:bg-primary">
-                          <TableHead className="text-primary-foreground sticky left-0 bg-primary min-w-[200px]">
-                            Cliente
+              <CardContent className="p-0">
+                <div className="overflow-x-auto max-h-[400px] overflow-y-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-primary text-primary-foreground hover:bg-primary sticky top-0 z-10">
+                        <TableHead className="text-primary-foreground sticky left-0 bg-primary min-w-[200px] z-20">
+                          Cliente
+                        </TableHead>
+                        {monthColumns.map(col => (
+                          <TableHead key={col.key} className="text-primary-foreground text-right min-w-[120px]">
+                            {col.label}
                           </TableHead>
-                          {monthColumns.map(col => (
-                            <TableHead key={col.key} className="text-primary-foreground text-right min-w-[120px]">
-                              {col.label}
-                            </TableHead>
-                          ))}
-                          <TableHead className="text-primary-foreground text-right min-w-[130px] font-bold">
-                            Total
-                          </TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {clientMonthlyData.map((client, idx) => (
-                          <TableRow key={client.clientCode} className={idx % 2 === 0 ? 'bg-card' : 'bg-table-stripe'}>
-                            <TableCell className="sticky left-0 bg-inherit font-medium max-w-[200px] truncate">
-                              {client.clientName}
-                            </TableCell>
-                            {monthColumns.map(col => {
-                              const amount = client.months.get(col.key) || 0;
-                              return (
-                                <TableCell key={col.key} className="text-right tabular-nums">
-                                  {amount > 0 ? formatCurrency(amount) : '—'}
-                                </TableCell>
-                              );
-                            })}
-                            <TableCell className="text-right tabular-nums font-bold">
-                              {formatCurrency(client.total)}
-                            </TableCell>
-                          </TableRow>
                         ))}
-                      </TableBody>
-                      <tfoot>
-                        <TableRow className="bg-muted font-bold border-t-2 border-border">
-                          <TableCell className="sticky left-0 bg-muted font-bold">
-                            TOTALES
+                        <TableHead className="text-primary-foreground text-right min-w-[130px] font-bold">
+                          Total
+                        </TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {clientMonthlyData.map((client, idx) => (
+                        <TableRow key={client.clientCode} className={idx % 2 === 0 ? 'bg-card' : 'bg-table-stripe'}>
+                          <TableCell className="sticky left-0 bg-inherit font-medium max-w-[200px] truncate z-10">
+                            {client.clientName}
                           </TableCell>
-                          {monthColumns.map(col => (
-                            <TableCell key={col.key} className="text-right tabular-nums font-bold">
-                              {formatCurrency(columnTotals.get(col.key) || 0)}
-                            </TableCell>
-                          ))}
-                          <TableCell className="text-right tabular-nums font-bold text-lg">
-                            {formatCurrency(totalFutureUSD)}
+                          {monthColumns.map(col => {
+                            const amount = client.months.get(col.key) || 0;
+                            return (
+                              <TableCell key={col.key} className="text-right tabular-nums">
+                                {amount > 0 ? formatCurrency(amount) : '—'}
+                              </TableCell>
+                            );
+                          })}
+                          <TableCell className="text-right tabular-nums font-bold">
+                            {formatCurrency(client.total)}
                           </TableCell>
                         </TableRow>
-                      </tfoot>
-                    </Table>
-                  </div>
-                </ScrollArea>
+                      ))}
+                    </TableBody>
+                    <tfoot className="sticky bottom-0 z-10">
+                      <TableRow className="bg-muted font-bold border-t-2 border-border">
+                        <TableCell className="sticky left-0 bg-muted font-bold z-20">
+                          TOTALES
+                        </TableCell>
+                        {monthColumns.map(col => (
+                          <TableCell key={col.key} className="text-right tabular-nums font-bold">
+                            {formatCurrency(columnTotals.get(col.key) || 0)}
+                          </TableCell>
+                        ))}
+                        <TableCell className="text-right tabular-nums font-bold text-lg">
+                          {formatCurrency(totalFutureUSD)}
+                        </TableCell>
+                      </TableRow>
+                    </tfoot>
+                  </Table>
+                </div>
               </CardContent>
             </Card>
           )}
@@ -430,33 +428,31 @@ export function PaymentProjections() {
                       </Button>
                       
                       {isExpanded && (
-                        <div className="border-t border-border">
-                          <ScrollArea className="max-h-[300px]">
-                            <Table>
-                              <TableHeader>
-                                <TableRow className="bg-muted/50">
-                                  <TableHead>Fecha</TableHead>
-                                  <TableHead>Cliente</TableHead>
-                                  <TableHead>Boleto</TableHead>
-                                  <TableHead>Detalle</TableHead>
-                                  <TableHead className="text-right">USD</TableHead>
+                        <div className="border-t border-border overflow-x-auto">
+                          <Table>
+                            <TableHeader>
+                              <TableRow className="bg-muted/50">
+                                <TableHead>Fecha</TableHead>
+                                <TableHead>Cliente</TableHead>
+                                <TableHead>Boleto</TableHead>
+                                <TableHead>Detalle</TableHead>
+                                <TableHead className="text-right">USD</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {monthData.payments.map((payment, idx) => (
+                                <TableRow key={idx}>
+                                  <TableCell>{formatDate(payment.dueDate)}</TableCell>
+                                  <TableCell className="max-w-[150px] truncate">{payment.clientName}</TableCell>
+                                  <TableCell>
+                                    <Badge variant="outline">{payment.ticketNumber}</Badge>
+                                  </TableCell>
+                                  <TableCell>{payment.detail}</TableCell>
+                                  <TableCell className="text-right">{formatCurrency(payment.amountUSD)}</TableCell>
                                 </TableRow>
-                              </TableHeader>
-                              <TableBody>
-                                {monthData.payments.map((payment, idx) => (
-                                  <TableRow key={idx}>
-                                    <TableCell>{formatDate(payment.dueDate)}</TableCell>
-                                    <TableCell className="max-w-[150px] truncate">{payment.clientName}</TableCell>
-                                    <TableCell>
-                                      <Badge variant="outline">{payment.ticketNumber}</Badge>
-                                    </TableCell>
-                                    <TableCell>{payment.detail}</TableCell>
-                                    <TableCell className="text-right">{formatCurrency(payment.amountUSD)}</TableCell>
-                                  </TableRow>
-                                ))}
-                              </TableBody>
-                            </Table>
-                          </ScrollArea>
+                              ))}
+                            </TableBody>
+                          </Table>
                         </div>
                       )}
                     </div>
