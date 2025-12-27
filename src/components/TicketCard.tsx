@@ -12,12 +12,14 @@ export function TicketCard({ ticket }: TicketCardProps) {
   return (
     <div className="bg-card rounded-xl card-shadow-lg overflow-hidden animate-slide-up">
       {/* Header */}
-      <div className="header-gradient text-primary-foreground p-5">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold tracking-wide">
-            FICHA DE OPERACIÓN — BOLETO N° {ticket.ticketNumber}
+      <div className="header-gradient text-primary-foreground p-4 sm:p-5">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <h2 className="text-sm sm:text-lg font-semibold tracking-wide break-words">
+            <span className="block sm:inline">FICHA DE OPERACIÓN</span>
+            <span className="hidden sm:inline"> — </span>
+            <span className="block sm:inline">BOLETO N° {ticket.ticketNumber}</span>
           </h2>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-shrink-0">
             <PDFViewer ticketNumber={ticket.ticketNumber} />
             <Button 
               variant="ghost" 
