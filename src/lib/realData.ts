@@ -479,7 +479,7 @@ export function getFuturePayments(): FuturePayment[] {
   return futurePayments;
 }
 
-// Get payments grouped by month (both past and future)
+// Get payments grouped by month (both past and future) - includes ALL operations with payments
 export function getPaymentsByMonth(): MonthlyPaymentSummary[] {
   const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 
                       'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
@@ -487,8 +487,8 @@ export function getPaymentsByMonth(): MonthlyPaymentSummary[] {
   const monthlyMap = new Map<string, MonthlyPaymentSummary>();
   
   for (const op of rawOperations) {
-    // Use payment date or check due date
-    const paymentDate = op.fechaPago || op.vtoCheque;
+    // Use vtoCheque (check due date) first for future payments, then fechaPago for past payments
+    const paymentDate = op.vtoCheque || op.fechaPago;
     
     if (paymentDate && op.importeUSD && op.importeUSD > 0) {
       const year = paymentDate.getFullYear();
@@ -516,12 +516,17 @@ export function getPaymentsByMonth(): MonthlyPaymentSummary[] {
         clientCode: op.codCliente || '',
         clientName: op.nombreCliente || '',
         ticketNumber: op.boleto || '',
-        detail: op.chequeTransf || 'Pago',
+        detail: `${op.chequeTransf || 'Pago'}${op.cuota ? ` (Cuota ${op.cuota})` : ''}${op.recibo ? ` - Rec: ${op.recibo}` : ''}`,
         amountARS: op.importeARS || 0,
         amountUSD: op.importeUSD || 0,
         exchangeRate: op.tipoCambio || 0,
       });
     }
+  }
+  
+  // Sort payments within each month by date
+  for (const summary of monthlyMap.values()) {
+    summary.payments.sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime());
   }
   
   // Convert to array and sort by year/month
