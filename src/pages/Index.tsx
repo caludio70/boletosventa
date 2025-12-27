@@ -7,6 +7,7 @@ import { TotalsByTicketTable } from '@/components/TotalsByTicketTable';
 import { PaymentProjections } from '@/components/PaymentProjections';
 import { EmptyState } from '@/components/EmptyState';
 import { ImportExcel } from '@/components/ImportExcel';
+import { PDFUploader } from '@/components/PDFUploader';
 import { searchTicketsOrClient, getClientSummary, getTotalsByTicket } from '@/lib/realData';
 import { Ticket, ClientSummary, OperationRow } from '@/lib/types';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -104,7 +105,10 @@ export default function Index() {
               </button>
             </div>
 
-            <ImportExcel onImport={handleImport} isLoading={isSaving} />
+            <div className="flex items-start gap-4">
+              <PDFUploader />
+              <ImportExcel onImport={handleImport} isLoading={isSaving} />
+            </div>
           </div>
 
           {activeView === 'search' && (
