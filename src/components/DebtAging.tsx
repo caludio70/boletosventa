@@ -4,6 +4,14 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import {
   Table,
   TableBody,
@@ -15,25 +23,61 @@ import {
 import { TicketCard } from '@/components/TicketCard';
 import { getTicketsWithoutPayments, getDebtAging, getAgingSummary, getTicketByNumber, DebtAgingItem } from '@/lib/realData';
 import { formatCurrency, formatDate } from '@/lib/formatters';
-import { AlertTriangle, Clock, DollarSign, FileWarning, Users } from 'lucide-react';
+import { AlertTriangle, Clock, DollarSign, FileWarning, Users, Download, FileSpreadsheet, Search, X } from 'lucide-react';
 import { Ticket } from '@/lib/types';
+import { exportDebtAgingToExcel, exportDebtAgingToPDF } from '@/lib/exportUtils';
 
 export function DebtAging() {
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [clientFilter, setClientFilter] = useState<string>('');
+  const [ticketFilter, setTicketFilter] = useState<string>('');
+  const [agingBucketFilter, setAgingBucketFilter] = useState<string>('all');
 
   const ticketsWithoutPayments = useMemo(() => getTicketsWithoutPayments(), []);
   const allDebtAging = useMemo(() => getDebtAging(), []);
   const agingSummary = useMemo(() => getAgingSummary(), []);
 
+  // Get unique clients for filter dropdown
+  const uniqueClients = useMemo(() => {
+    const clients = new Map<string, string>();
+    allDebtAging.forEach(item => {
+      clients.set(item.clientCode, item.clientName);
+    });
+    return Array.from(clients.entries()).sort((a, b) => a[1].localeCompare(b[1]));
+  }, [allDebtAging]);
+
+  // Filter function
+  const filterItems = (items: DebtAgingItem[]) => {
+    return items.filter(item => {
+      const matchesClient = !clientFilter || 
+        item.clientName.toLowerCase().includes(clientFilter.toLowerCase()) ||
+        item.clientCode.toLowerCase().includes(clientFilter.toLowerCase());
+      const matchesTicket = !ticketFilter || 
+        item.ticketNumber.toLowerCase().includes(ticketFilter.toLowerCase());
+      const matchesBucket = agingBucketFilter === 'all' || item.agingBucket === agingBucketFilter;
+      return matchesClient && matchesTicket && matchesBucket;
+    });
+  };
+
+  const filteredWithoutPayments = useMemo(() => 
+    filterItems(ticketsWithoutPayments), 
+    [ticketsWithoutPayments, clientFilter, ticketFilter, agingBucketFilter]
+  );
+
+  const filteredAllDebt = useMemo(() => 
+    filterItems(allDebtAging), 
+    [allDebtAging, clientFilter, ticketFilter, agingBucketFilter]
+  );
+
   const totalPending = useMemo(() => 
-    allDebtAging.reduce((sum, item) => sum + item.balance, 0), 
-    [allDebtAging]
+    filteredAllDebt.reduce((sum, item) => sum + item.balance, 0), 
+    [filteredAllDebt]
   );
 
   const totalWithoutPayments = useMemo(() => 
-    ticketsWithoutPayments.reduce((sum, item) => sum + item.balance, 0), 
-    [ticketsWithoutPayments]
+    filteredWithoutPayments.reduce((sum, item) => sum + item.balance, 0), 
+    [filteredWithoutPayments]
   );
 
   const handleTicketClick = (ticketNumber: string) => {
@@ -43,6 +87,14 @@ export function DebtAging() {
       setModalOpen(true);
     }
   };
+
+  const clearFilters = () => {
+    setClientFilter('');
+    setTicketFilter('');
+    setAgingBucketFilter('all');
+  };
+
+  const hasActiveFilters = clientFilter || ticketFilter || agingBucketFilter !== 'all';
 
   const getBucketColor = (bucket: string) => {
     switch (bucket) {
@@ -133,6 +185,88 @@ export function DebtAging() {
 
   return (
     <div className="space-y-6">
+      {/* Filters */}
+      <Card>
+        <CardHeader className="pb-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <CardTitle className="flex items-center gap-2">
+              <Search className="h-5 w-5" />
+              Filtros
+            </CardTitle>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => exportDebtAgingToExcel(filteredAllDebt, 'aging_deuda')}
+                className="gap-2"
+              >
+                <FileSpreadsheet className="h-4 w-4" />
+                Excel
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => exportDebtAgingToPDF(filteredAllDebt, 'aging_deuda')}
+                className="gap-2"
+              >
+                <Download className="h-4 w-4" />
+                PDF
+              </Button>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Cliente</label>
+              <Input
+                placeholder="Buscar cliente..."
+                value={clientFilter}
+                onChange={(e) => setClientFilter(e.target.value)}
+                className="h-9"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Boleto</label>
+              <Input
+                placeholder="Número de boleto..."
+                value={ticketFilter}
+                onChange={(e) => setTicketFilter(e.target.value)}
+                className="h-9"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Antigüedad</label>
+              <Select value={agingBucketFilter} onValueChange={setAgingBucketFilter}>
+                <SelectTrigger className="h-9">
+                  <SelectValue placeholder="Todos" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="0-30">0-30 días</SelectItem>
+                  <SelectItem value="31-60">31-60 días</SelectItem>
+                  <SelectItem value="61-90">61-90 días</SelectItem>
+                  <SelectItem value="90+">+90 días</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-end">
+              {hasActiveFilters && (
+                <Button variant="ghost" size="sm" onClick={clearFilters} className="gap-2">
+                  <X className="h-4 w-4" />
+                  Limpiar filtros
+                </Button>
+              )}
+            </div>
+          </div>
+          {hasActiveFilters && (
+            <div className="mt-4 text-sm text-muted-foreground">
+              Mostrando {filteredAllDebt.length} de {allDebtAging.length} registros
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
@@ -145,7 +279,7 @@ export function DebtAging() {
               {formatCurrency(totalPending)}
             </div>
             <p className="text-xs text-muted-foreground">
-              {allDebtAging.length} operaciones pendientes
+              {filteredAllDebt.length} operaciones pendientes
             </p>
           </CardContent>
         </Card>
@@ -160,7 +294,7 @@ export function DebtAging() {
               {formatCurrency(totalWithoutPayments)}
             </div>
             <p className="text-xs text-muted-foreground">
-              {ticketsWithoutPayments.length} boletos sin pagos
+              {filteredWithoutPayments.length} boletos sin pagos
             </p>
           </CardContent>
         </Card>
@@ -187,7 +321,7 @@ export function DebtAging() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {new Set(allDebtAging.map(i => i.clientCode)).size}
+              {new Set(filteredAllDebt.map(i => i.clientCode)).size}
             </div>
             <p className="text-xs text-muted-foreground">
               clientes únicos
@@ -233,11 +367,11 @@ export function DebtAging() {
             <TabsList className="mb-4">
               <TabsTrigger value="no-payments" className="gap-2">
                 <FileWarning className="h-4 w-4" />
-                Sin Pagos ({ticketsWithoutPayments.length})
+                Sin Pagos ({filteredWithoutPayments.length})
               </TabsTrigger>
               <TabsTrigger value="all-aging" className="gap-2">
                 <Clock className="h-4 w-4" />
-                Todo el Aging ({allDebtAging.length})
+                Todo el Aging ({filteredAllDebt.length})
               </TabsTrigger>
             </TabsList>
 
@@ -247,11 +381,11 @@ export function DebtAging() {
                   <strong>Atención:</strong> Estos boletos no tienen ningún pago registrado.
                 </p>
               </div>
-              {renderTable(ticketsWithoutPayments, false)}
+              {renderTable(filteredWithoutPayments, false)}
             </TabsContent>
 
             <TabsContent value="all-aging">
-              {renderTable(allDebtAging, true)}
+              {renderTable(filteredAllDebt, true)}
             </TabsContent>
           </Tabs>
         </CardContent>
