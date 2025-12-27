@@ -336,6 +336,97 @@ export function getAllOperations(): Partial<OperationRow>[] {
   return [...rawOperations];
 }
 
+// Interface for debt aging
+export interface DebtAgingItem {
+  clientCode: string;
+  clientName: string;
+  ticketNumber: string;
+  operationDate: Date;
+  totalSale: number;
+  totalUsed: number;
+  totalPayments: number;
+  balance: number;
+  daysOverdue: number;
+  agingBucket: '0-30' | '31-60' | '61-90' | '90+';
+  hasPayments: boolean;
+}
+
+// Get tickets without any payments
+export function getTicketsWithoutPayments(): DebtAgingItem[] {
+  const tickets = getAllTickets();
+  const today = new Date();
+  
+  return tickets
+    .filter(t => t.payments.length === 0 && t.finalBalance > 0)
+    .map(t => {
+      const daysSinceOperation = Math.floor((today.getTime() - t.operationDate.getTime()) / (1000 * 60 * 60 * 24));
+      let agingBucket: '0-30' | '31-60' | '61-90' | '90+';
+      if (daysSinceOperation <= 30) agingBucket = '0-30';
+      else if (daysSinceOperation <= 60) agingBucket = '31-60';
+      else if (daysSinceOperation <= 90) agingBucket = '61-90';
+      else agingBucket = '90+';
+      
+      return {
+        clientCode: t.clientCode,
+        clientName: t.clientName,
+        ticketNumber: t.ticketNumber,
+        operationDate: t.operationDate,
+        totalSale: t.totalSale,
+        totalUsed: t.totalUsed,
+        totalPayments: 0,
+        balance: t.finalBalance,
+        daysOverdue: daysSinceOperation,
+        agingBucket,
+        hasPayments: false,
+      };
+    })
+    .sort((a, b) => b.daysOverdue - a.daysOverdue);
+}
+
+// Get all pending debt with aging buckets
+export function getDebtAging(): DebtAgingItem[] {
+  const tickets = getAllTickets();
+  const today = new Date();
+  
+  return tickets
+    .filter(t => t.finalBalance > 100) // Only tickets with pending balance > USD 100
+    .map(t => {
+      const daysSinceOperation = Math.floor((today.getTime() - t.operationDate.getTime()) / (1000 * 60 * 60 * 24));
+      let agingBucket: '0-30' | '31-60' | '61-90' | '90+';
+      if (daysSinceOperation <= 30) agingBucket = '0-30';
+      else if (daysSinceOperation <= 60) agingBucket = '31-60';
+      else if (daysSinceOperation <= 90) agingBucket = '61-90';
+      else agingBucket = '90+';
+      
+      return {
+        clientCode: t.clientCode,
+        clientName: t.clientName,
+        ticketNumber: t.ticketNumber,
+        operationDate: t.operationDate,
+        totalSale: t.totalSale,
+        totalUsed: t.totalUsed,
+        totalPayments: t.totalPayments,
+        balance: t.finalBalance,
+        daysOverdue: daysSinceOperation,
+        agingBucket,
+        hasPayments: t.payments.length > 0,
+      };
+    })
+    .sort((a, b) => b.daysOverdue - a.daysOverdue);
+}
+
+// Get aging summary by bucket
+export function getAgingSummary(): { bucket: string; count: number; total: number }[] {
+  const items = getDebtAging();
+  const buckets = ['0-30', '31-60', '61-90', '90+'];
+  
+  return buckets.map(bucket => ({
+    bucket,
+    count: items.filter(i => i.agingBucket === bucket).length,
+    total: items.filter(i => i.agingBucket === bucket).reduce((sum, i) => sum + i.balance, 0),
+  }));
+}
+
 // Interface for future payments
 export interface FuturePayment {
   dueDate: Date;
