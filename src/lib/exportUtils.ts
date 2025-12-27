@@ -314,3 +314,129 @@ function getDateString(): string {
   const now = new Date();
   return `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
 }
+
+// Export Debt Aging to Excel
+export function exportDebtAgingToExcel(data: { ticketNumber: string; clientName: string; clientCode: string; operationDate: Date; totalSale: number; totalUsed: number; totalPayments: number; balance: number; daysOverdue: number; agingBucket: string }[], filename: string = 'aging_deuda') {
+  const excelData = data.map(row => ({
+    'Cliente': row.clientName,
+    'Código': row.clientCode,
+    'Boleto': row.ticketNumber,
+    'Fecha Op.': formatDate(row.operationDate),
+    'Venta USD': row.totalSale,
+    'Usados USD': row.totalUsed,
+    'Pagos USD': row.totalPayments,
+    'Saldo USD': row.balance,
+    'Días': row.daysOverdue,
+    'Aging': row.agingBucket === '90+' ? '+90 días' : `${row.agingBucket} días`,
+  }));
+
+  // Add totals row
+  const totals = {
+    'Cliente': 'TOTALES',
+    'Código': '',
+    'Boleto': `${data.length} boletos`,
+    'Fecha Op.': '',
+    'Venta USD': data.reduce((sum, r) => sum + r.totalSale, 0),
+    'Usados USD': data.reduce((sum, r) => sum + r.totalUsed, 0),
+    'Pagos USD': data.reduce((sum, r) => sum + r.totalPayments, 0),
+    'Saldo USD': data.reduce((sum, r) => sum + r.balance, 0),
+    'Días': '',
+    'Aging': '',
+  };
+  excelData.push(totals as any);
+
+  const ws = XLSX.utils.json_to_sheet(excelData);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Aging de Deuda');
+
+  ws['!cols'] = [
+    { wch: 35 }, // Cliente
+    { wch: 12 }, // Código
+    { wch: 10 }, // Boleto
+    { wch: 12 }, // Fecha
+    { wch: 15 }, // Venta
+    { wch: 15 }, // Usados
+    { wch: 15 }, // Pagos
+    { wch: 15 }, // Saldo
+    { wch: 8 },  // Días
+    { wch: 12 }, // Aging
+  ];
+
+  XLSX.writeFile(wb, `${filename}_${getDateString()}.xlsx`);
+}
+
+// Export Debt Aging to PDF
+export function exportDebtAgingToPDF(data: { ticketNumber: string; clientName: string; clientCode: string; operationDate: Date; totalSale: number; totalUsed: number; totalPayments: number; balance: number; daysOverdue: number; agingBucket: string }[], filename: string = 'aging_deuda') {
+  const doc = new jsPDF('l', 'mm', 'a4');
+
+  doc.setFontSize(16);
+  doc.setFont('helvetica', 'bold');
+  doc.text('AUTOBUS S.A. - Aging de Deuda', 14, 15);
+
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  doc.text(`Generado: ${new Date().toLocaleDateString('es-AR')}`, 14, 22);
+  doc.text(`Total registros: ${data.length}`, 14, 28);
+
+  const tableData = data.map(row => [
+    row.clientName.substring(0, 30),
+    row.ticketNumber,
+    formatDate(row.operationDate),
+    formatCurrency(row.totalSale),
+    formatCurrency(row.totalUsed),
+    formatCurrency(row.totalPayments),
+    formatCurrency(row.balance),
+    row.daysOverdue.toString(),
+    row.agingBucket === '90+' ? '+90 días' : `${row.agingBucket} días`,
+  ]);
+
+  const totalsRow = [
+    'TOTALES',
+    `${data.length}`,
+    '',
+    formatCurrency(data.reduce((sum, r) => sum + r.totalSale, 0)),
+    formatCurrency(data.reduce((sum, r) => sum + r.totalUsed, 0)),
+    formatCurrency(data.reduce((sum, r) => sum + r.totalPayments, 0)),
+    formatCurrency(data.reduce((sum, r) => sum + r.balance, 0)),
+    '',
+    '',
+  ];
+
+  autoTable(doc, {
+    head: [['Cliente', 'Boleto', 'Fecha', 'Venta USD', 'Usados', 'Pagos', 'Saldo', 'Días', 'Aging']],
+    body: [...tableData, totalsRow],
+    startY: 34,
+    styles: {
+      fontSize: 7,
+      cellPadding: 2,
+    },
+    headStyles: {
+      fillColor: [51, 51, 51],
+      textColor: [255, 255, 255],
+      fontStyle: 'bold',
+    },
+    alternateRowStyles: {
+      fillColor: [248, 248, 248],
+    },
+    columnStyles: {
+      0: { cellWidth: 50 },
+      1: { cellWidth: 20, halign: 'center' },
+      2: { cellWidth: 22 },
+      3: { cellWidth: 25, halign: 'right' },
+      4: { cellWidth: 25, halign: 'right' },
+      5: { cellWidth: 25, halign: 'right' },
+      6: { cellWidth: 25, halign: 'right' },
+      7: { cellWidth: 15, halign: 'center' },
+      8: { cellWidth: 25, halign: 'center' },
+    },
+    didParseCell: (data) => {
+      if (data.row.index === tableData.length) {
+        data.cell.styles.fillColor = [51, 51, 51];
+        data.cell.styles.textColor = [255, 255, 255];
+        data.cell.styles.fontStyle = 'bold';
+      }
+    },
+  });
+
+  doc.save(`${filename}_${getDateString()}.pdf`);
+}
