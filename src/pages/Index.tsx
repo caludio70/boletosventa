@@ -5,18 +5,19 @@ import { TicketCard } from '@/components/TicketCard';
 import { ClientSummaryCard } from '@/components/ClientSummaryCard';
 import { TotalsByTicketTable } from '@/components/TotalsByTicketTable';
 import { PaymentProjections } from '@/components/PaymentProjections';
+import { DebtAging } from '@/components/DebtAging';
 import { EmptyState } from '@/components/EmptyState';
 import { ImportExcel } from '@/components/ImportExcel';
 import { PDFUploader } from '@/components/PDFUploader';
 import { searchTicketsOrClient, getClientSummary, getTotalsByTicket } from '@/lib/realData';
 import { Ticket, ClientSummary, OperationRow } from '@/lib/types';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { FileText, LayoutList, Table, Calendar, Loader2 } from 'lucide-react';
+import { FileText, LayoutList, Table, Calendar, Loader2, AlertTriangle } from 'lucide-react';
 import { useOperationsData } from '@/hooks/useOperationsData';
 
 export default function Index() {
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeView, setActiveView] = useState<'search' | 'totals' | 'projections'>('totals');
+  const [activeView, setActiveView] = useState<'search' | 'totals' | 'projections' | 'aging'>('totals');
   const [searchResult, setSearchResult] = useState<{
     type: 'ticket' | 'client' | 'not_found' | 'initial';
     tickets: Ticket[];
@@ -103,6 +104,17 @@ export default function Index() {
                 <Calendar className="w-4 h-4" />
                 Proyecciones
               </button>
+              <button
+                onClick={() => setActiveView('aging')}
+                className={`inline-flex items-center gap-2 px-3 py-1.5 rounded text-sm font-medium transition-colors ${
+                  activeView === 'aging' 
+                    ? 'bg-primary text-primary-foreground' 
+                    : 'bg-muted text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                }`}
+              >
+                <AlertTriangle className="w-4 h-4" />
+                Aging Deuda
+              </button>
             </div>
 
             <div className="flex items-start gap-4">
@@ -172,6 +184,10 @@ export default function Index() {
 
           {activeView === 'projections' && (
             <PaymentProjections key={refreshKey} />
+          )}
+
+          {activeView === 'aging' && (
+            <DebtAging key={refreshKey} />
           )}
         </div>
       </main>
