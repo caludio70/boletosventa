@@ -72,26 +72,28 @@ export function PaymentProjections() {
     count: m.paymentCount,
   }));
 
-  // Build client x month matrix for the table
+  // Build client x month matrix for the table - using ALL monthly payments, not just future
   const clientMonthlyData = useMemo(() => {
-    // Get unique clients from future payments
     const clientMap = new Map<string, { clientName: string; months: Map<string, number>; total: number }>();
     
-    for (const payment of futurePayments) {
-      const monthKey = `${payment.dueDate.getFullYear()}-${payment.dueDate.getMonth()}`;
-      
-      if (!clientMap.has(payment.clientCode)) {
-        clientMap.set(payment.clientCode, {
-          clientName: payment.clientName,
-          months: new Map(),
-          total: 0,
-        });
+    // Iterate through all monthly payments (past and future)
+    for (const monthData of monthlyPayments) {
+      for (const payment of monthData.payments) {
+        const monthKey = `${monthData.year}-${monthData.monthNumber}`;
+        
+        if (!clientMap.has(payment.clientCode)) {
+          clientMap.set(payment.clientCode, {
+            clientName: payment.clientName,
+            months: new Map(),
+            total: 0,
+          });
+        }
+        
+        const client = clientMap.get(payment.clientCode)!;
+        const currentAmount = client.months.get(monthKey) || 0;
+        client.months.set(monthKey, currentAmount + payment.amountUSD);
+        client.total += payment.amountUSD;
       }
-      
-      const client = clientMap.get(payment.clientCode)!;
-      const currentAmount = client.months.get(monthKey) || 0;
-      client.months.set(monthKey, currentAmount + payment.amountUSD);
-      client.total += payment.amountUSD;
     }
     
     return Array.from(clientMap.entries())
@@ -102,17 +104,17 @@ export function PaymentProjections() {
         total: data.total,
       }))
       .sort((a, b) => b.total - a.total);
-  }, [futurePayments]);
+  }, [monthlyPayments]);
 
-  // Get month columns for the table
+  // Get month columns for the table - use ALL months, not just future
   const monthColumns = useMemo(() => {
-    return futureMonths.map(m => ({
+    return monthlyPayments.map(m => ({
       key: `${m.year}-${m.monthNumber}`,
       label: `${m.month.substring(0, 3)} ${m.year}`,
       month: m.month,
       year: m.year,
     }));
-  }, [futureMonths]);
+  }, [monthlyPayments]);
 
   // Calculate column totals
   const columnTotals = useMemo(() => {
@@ -124,6 +126,11 @@ export function PaymentProjections() {
       }
     }
     return totals;
+  }, [clientMonthlyData]);
+
+  // Calculate grand total for the table (all months, not just future)
+  const grandTotalUSD = useMemo(() => {
+    return clientMonthlyData.reduce((sum, client) => sum + client.total, 0);
   }, [clientMonthlyData]);
   
   const toggleMonth = (key: string) => {
@@ -333,7 +340,7 @@ export function PaymentProjections() {
                           </TableCell>
                         ))}
                         <TableCell className="text-right tabular-nums font-bold text-lg">
-                          {formatCurrency(totalFutureUSD)}
+                          {formatCurrency(grandTotalUSD)}
                         </TableCell>
                       </TableRow>
                     </tfoot>
