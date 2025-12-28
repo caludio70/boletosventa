@@ -1,15 +1,22 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
 import { FileText, Download, ExternalLink, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { checkTicketPDFExists, getTicketPDFUrl } from '@/lib/pdfStorage';
-import * as pdfjsLib from 'pdfjs-dist';
-
-// Configure PDF.js worker
-pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.worker.min.js`;
 
 interface PDFViewerProps {
   ticketNumber: string;
+}
+
+// Lazy load pdfjs-dist to avoid top-level await issues
+let pdfjsLib: typeof import('pdfjs-dist') | null = null;
+
+async function getPdfjs() {
+  if (!pdfjsLib) {
+    pdfjsLib = await import('pdfjs-dist');
+    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.worker.min.js`;
+  }
+  return pdfjsLib;
 }
 
 export function PDFViewer({ ticketNumber }: PDFViewerProps) {
@@ -20,13 +27,13 @@ export function PDFViewer({ ticketNumber }: PDFViewerProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const pdfDocRef = useRef<pdfjsLib.PDFDocumentProxy | null>(null);
+  const pdfDocRef = useRef<any>(null);
 
   useEffect(() => {
     checkTicketPDFExists(ticketNumber).then(setHasPDF);
   }, [ticketNumber]);
 
-  const renderPage = async (pageNum: number) => {
+  const renderPage = useCallback(async (pageNum: number) => {
     if (!pdfDocRef.current || !canvasRef.current) return;
     
     const page = await pdfDocRef.current.getPage(pageNum);
@@ -47,15 +54,16 @@ export function PDFViewer({ ticketNumber }: PDFViewerProps) {
       canvasContext: context,
       viewport: scaledViewport,
     }).promise;
-  };
+  }, []);
 
-  const loadPDF = async () => {
+  const loadPDF = useCallback(async () => {
     const pdfUrl = getTicketPDFUrl(ticketNumber);
     setIsLoading(true);
     setError(null);
     
     try {
-      const loadingTask = pdfjsLib.getDocument(pdfUrl);
+      const pdfjs = await getPdfjs();
+      const loadingTask = pdfjs.getDocument(pdfUrl);
       const pdf = await loadingTask.promise;
       pdfDocRef.current = pdf;
       setNumPages(pdf.numPages);
@@ -67,7 +75,7 @@ export function PDFViewer({ ticketNumber }: PDFViewerProps) {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [ticketNumber, renderPage]);
 
   useEffect(() => {
     if (isOpen && hasPDF) {
@@ -79,13 +87,13 @@ export function PDFViewer({ ticketNumber }: PDFViewerProps) {
         pdfDocRef.current = null;
       }
     };
-  }, [isOpen, hasPDF, ticketNumber]);
+  }, [isOpen, hasPDF, loadPDF]);
 
   useEffect(() => {
     if (pdfDocRef.current && currentPage > 0) {
       renderPage(currentPage);
     }
-  }, [currentPage]);
+  }, [currentPage, renderPage]);
 
   if (hasPDF === null) {
     return (
