@@ -4,6 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
   getFuturePayments, 
@@ -30,7 +31,9 @@ import {
   ChevronDown,
   ChevronUp,
   Users,
-  FileText
+  FileText,
+  Search,
+  X
 } from 'lucide-react';
 import {
   BarChart,
@@ -47,10 +50,63 @@ export function PaymentProjections() {
   const [expandedMonth, setExpandedMonth] = useState<string | null>(null);
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [isTicketModalOpen, setIsTicketModalOpen] = useState(false);
+  const [clientFilter, setClientFilter] = useState<string>('');
+  const [ticketFilter, setTicketFilter] = useState<string>('');
   
-  const futurePayments = useMemo(() => getFuturePayments(), []);
-  const monthlyPayments = useMemo(() => getPaymentsByMonth(), []);
-  const pendingBalances = useMemo(() => getPendingBalances(), []);
+  const allFuturePayments = useMemo(() => getFuturePayments(), []);
+  const allMonthlyPayments = useMemo(() => getPaymentsByMonth(), []);
+  const allPendingBalances = useMemo(() => getPendingBalances(), []);
+
+  // Filter future payments
+  const futurePayments = useMemo(() => {
+    return allFuturePayments.filter(payment => {
+      const matchesClient = !clientFilter ||
+        payment.clientName.toLowerCase().includes(clientFilter.toLowerCase()) ||
+        payment.clientCode.toLowerCase().includes(clientFilter.toLowerCase());
+      const matchesTicket = !ticketFilter ||
+        payment.ticketNumber.toLowerCase().includes(ticketFilter.toLowerCase());
+      return matchesClient && matchesTicket;
+    });
+  }, [allFuturePayments, clientFilter, ticketFilter]);
+
+  // Filter monthly payments
+  const monthlyPayments = useMemo(() => {
+    return allMonthlyPayments.map(month => ({
+      ...month,
+      payments: month.payments.filter(payment => {
+        const matchesClient = !clientFilter ||
+          payment.clientName.toLowerCase().includes(clientFilter.toLowerCase()) ||
+          payment.clientCode.toLowerCase().includes(clientFilter.toLowerCase());
+        const matchesTicket = !ticketFilter ||
+          payment.ticketNumber.toLowerCase().includes(ticketFilter.toLowerCase());
+        return matchesClient && matchesTicket;
+      }),
+    })).map(month => ({
+      ...month,
+      totalUSD: month.payments.reduce((sum, p) => sum + p.amountUSD, 0),
+      totalARS: month.payments.reduce((sum, p) => sum + p.amountARS, 0),
+      paymentCount: month.payments.length,
+    })).filter(month => month.payments.length > 0);
+  }, [allMonthlyPayments, clientFilter, ticketFilter]);
+
+  // Filter pending balances
+  const pendingBalances = useMemo(() => {
+    return allPendingBalances.filter(client => {
+      const matchesClient = !clientFilter ||
+        client.clientName.toLowerCase().includes(clientFilter.toLowerCase()) ||
+        client.clientCode.toLowerCase().includes(clientFilter.toLowerCase());
+      const matchesTicket = !ticketFilter ||
+        client.tickets.some(t => t.toLowerCase().includes(ticketFilter.toLowerCase()));
+      return matchesClient && matchesTicket;
+    });
+  }, [allPendingBalances, clientFilter, ticketFilter]);
+
+  const clearFilters = () => {
+    setClientFilter('');
+    setTicketFilter('');
+  };
+
+  const hasActiveFilters = clientFilter || ticketFilter;
   
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -147,6 +203,51 @@ export function PaymentProjections() {
   
   return (
     <div className="space-y-6">
+      {/* Filters */}
+      <Card className="bg-card border-border card-shadow">
+        <CardHeader className="pb-4">
+          <CardTitle className="flex items-center gap-2">
+            <Search className="h-5 w-5" />
+            Filtros
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Cliente</label>
+              <Input
+                placeholder="Buscar cliente..."
+                value={clientFilter}
+                onChange={(e) => setClientFilter(e.target.value)}
+                className="h-9"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Boleto</label>
+              <Input
+                placeholder="Número de boleto..."
+                value={ticketFilter}
+                onChange={(e) => setTicketFilter(e.target.value)}
+                className="h-9"
+              />
+            </div>
+            <div className="flex items-end">
+              {hasActiveFilters && (
+                <Button variant="ghost" size="sm" onClick={clearFilters} className="gap-2">
+                  <X className="h-4 w-4" />
+                  Limpiar filtros
+                </Button>
+              )}
+            </div>
+          </div>
+          {hasActiveFilters && (
+            <div className="mt-4 text-sm text-muted-foreground">
+              Mostrando resultados filtrados
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="bg-card border-border card-shadow">
