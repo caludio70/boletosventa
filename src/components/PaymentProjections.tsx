@@ -11,12 +11,15 @@ import {
   getPaymentsByMonth, 
   getPendingBalances,
   getTicketByNumber,
+  getTicketsByClientCode,
+  getClientSummary,
   FuturePayment,
   MonthlyPaymentSummary 
 } from '@/lib/realData';
-import { Ticket } from '@/lib/types';
+import { Ticket, ClientSummary } from '@/lib/types';
 import { formatCurrency, formatDate } from '@/lib/formatters';
 import { TicketCard } from '@/components/TicketCard';
+import { ClientSummaryCard } from '@/components/ClientSummaryCard';
 import {
   Dialog,
   DialogContent,
@@ -33,7 +36,8 @@ import {
   Users,
   FileText,
   Search,
-  X
+  X,
+  User
 } from 'lucide-react';
 import {
   BarChart,
@@ -50,6 +54,8 @@ export function PaymentProjections() {
   const [expandedMonth, setExpandedMonth] = useState<string | null>(null);
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [isTicketModalOpen, setIsTicketModalOpen] = useState(false);
+  const [selectedClientSummary, setSelectedClientSummary] = useState<ClientSummary | null>(null);
+  const [isClientModalOpen, setIsClientModalOpen] = useState(false);
   const [clientFilter, setClientFilter] = useState<string>('');
   const [ticketFilter, setTicketFilter] = useState<string>('');
   
@@ -198,6 +204,17 @@ export function PaymentProjections() {
     if (ticket) {
       setSelectedTicket(ticket);
       setIsTicketModalOpen(true);
+    }
+  };
+
+  const handleClientClick = (clientCode: string) => {
+    const tickets = getTicketsByClientCode(clientCode);
+    if (tickets.length > 0) {
+      const summary = getClientSummary(tickets);
+      if (summary) {
+        setSelectedClientSummary(summary);
+        setIsClientModalOpen(true);
+      }
     }
   };
   
@@ -362,9 +379,23 @@ export function PaymentProjections() {
                                 )}
                               </div>
                             </TableCell>
-                            <TableCell className="max-w-[200px] truncate">{payment.clientName}</TableCell>
                             <TableCell>
-                              <Badge variant="secondary">{payment.ticketNumber}</Badge>
+                              <Button
+                                variant="link"
+                                className="p-0 h-auto font-medium text-foreground hover:text-primary max-w-[200px] truncate"
+                                onClick={() => handleClientClick(payment.clientCode)}
+                              >
+                                {payment.clientName}
+                              </Button>
+                            </TableCell>
+                            <TableCell>
+                              <Button
+                                variant="link"
+                                className="p-0 h-auto font-mono text-primary"
+                                onClick={() => handleTicketClick(payment.ticketNumber)}
+                              >
+                                {payment.ticketNumber}
+                              </Button>
                             </TableCell>
                             <TableCell>{payment.detail}</TableCell>
                             <TableCell className="text-right font-medium">
@@ -413,8 +444,14 @@ export function PaymentProjections() {
                     <TableBody>
                       {clientMonthlyData.map((client, idx) => (
                         <TableRow key={client.clientCode} className={idx % 2 === 0 ? 'bg-card' : 'bg-table-stripe'}>
-                          <TableCell className="sticky left-0 bg-inherit font-medium max-w-[200px] truncate z-10">
-                            {client.clientName}
+                          <TableCell className="sticky left-0 bg-inherit z-10">
+                            <Button
+                              variant="link"
+                              className="p-0 h-auto font-medium text-foreground hover:text-primary max-w-[200px] truncate"
+                              onClick={() => handleClientClick(client.clientCode)}
+                            >
+                              {client.clientName}
+                            </Button>
                           </TableCell>
                           {monthColumns.map(col => {
                             const amount = client.months.get(col.key) || 0;
@@ -551,9 +588,23 @@ export function PaymentProjections() {
                               {monthData.payments.map((payment, idx) => (
                                 <TableRow key={idx}>
                                   <TableCell>{formatDate(payment.dueDate)}</TableCell>
-                                  <TableCell className="max-w-[150px] truncate">{payment.clientName}</TableCell>
                                   <TableCell>
-                                    <Badge variant="outline">{payment.ticketNumber}</Badge>
+                                    <Button
+                                      variant="link"
+                                      className="p-0 h-auto font-medium text-foreground hover:text-primary max-w-[150px] truncate"
+                                      onClick={() => handleClientClick(payment.clientCode)}
+                                    >
+                                      {payment.clientName}
+                                    </Button>
+                                  </TableCell>
+                                  <TableCell>
+                                    <Button
+                                      variant="link"
+                                      className="p-0 h-auto font-mono text-primary"
+                                      onClick={() => handleTicketClick(payment.ticketNumber)}
+                                    >
+                                      {payment.ticketNumber}
+                                    </Button>
                                   </TableCell>
                                   <TableCell>{payment.detail}</TableCell>
                                   <TableCell className="text-right">{formatCurrency(payment.amountUSD)}</TableCell>
@@ -605,8 +656,14 @@ export function PaymentProjections() {
                     <TableBody>
                       {pendingBalances.map((client, idx) => (
                         <TableRow key={idx} className="even:bg-table-stripe">
-                          <TableCell className="max-w-[250px] truncate font-medium">
-                            {client.clientName}
+                          <TableCell>
+                            <Button
+                              variant="link"
+                              className="p-0 h-auto font-medium text-foreground hover:text-primary max-w-[250px] truncate"
+                              onClick={() => handleClientClick(client.clientCode)}
+                            >
+                              {client.clientName}
+                            </Button>
                           </TableCell>
                           <TableCell>{client.clientCode}</TableCell>
                           <TableCell>
@@ -654,6 +711,19 @@ export function PaymentProjections() {
             </DialogTitle>
           </DialogHeader>
           {selectedTicket && <TicketCard ticket={selectedTicket} />}
+        </DialogContent>
+      </Dialog>
+
+      {/* Client Summary Modal */}
+      <Dialog open={isClientModalOpen} onOpenChange={setIsClientModalOpen}>
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <User className="h-5 w-5" />
+              Resumen del Cliente
+            </DialogTitle>
+          </DialogHeader>
+          {selectedClientSummary && <ClientSummaryCard summary={selectedClientSummary} />}
         </DialogContent>
       </Dialog>
     </div>
