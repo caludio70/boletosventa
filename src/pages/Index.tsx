@@ -6,18 +6,20 @@ import { ClientSummaryCard } from '@/components/ClientSummaryCard';
 import { TotalsByTicketTable } from '@/components/TotalsByTicketTable';
 import { PaymentProjections } from '@/components/PaymentProjections';
 import { DebtAging } from '@/components/DebtAging';
+import { DebtRefinancing } from '@/components/DebtRefinancing';
+import { InterestCalculator } from '@/components/InterestCalculator';
 import { EmptyState } from '@/components/EmptyState';
 import { ImportExcel } from '@/components/ImportExcel';
 import { PDFUploader } from '@/components/PDFUploader';
 import { searchTicketsOrClient, getClientSummary, getTotalsByTicket } from '@/lib/realData';
 import { Ticket, ClientSummary, OperationRow } from '@/lib/types';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { FileText, LayoutList, Table, Calendar, Loader2, AlertTriangle } from 'lucide-react';
+import { FileText, LayoutList, Table, Calendar, Loader2, AlertTriangle, Calculator, Percent } from 'lucide-react';
 import { useOperationsData } from '@/hooks/useOperationsData';
 
 export default function Index() {
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeView, setActiveView] = useState<'search' | 'totals' | 'projections' | 'aging'>('totals');
+  const [activeView, setActiveView] = useState<'search' | 'totals' | 'projections' | 'aging' | 'refinancing' | 'interests'>('totals');
   const [searchResult, setSearchResult] = useState<{
     type: 'ticket' | 'client' | 'not_found' | 'initial';
     tickets: Ticket[];
@@ -115,6 +117,28 @@ export default function Index() {
                 <AlertTriangle className="w-4 h-4" />
                 Aging Deuda
               </button>
+              <button
+                onClick={() => setActiveView('refinancing')}
+                className={`inline-flex items-center gap-2 px-3 py-1.5 rounded text-sm font-medium transition-colors ${
+                  activeView === 'refinancing' 
+                    ? 'bg-primary text-primary-foreground' 
+                    : 'bg-muted text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                }`}
+              >
+                <Calculator className="w-4 h-4" />
+                Refinanciación
+              </button>
+              <button
+                onClick={() => setActiveView('interests')}
+                className={`inline-flex items-center gap-2 px-3 py-1.5 rounded text-sm font-medium transition-colors ${
+                  activeView === 'interests' 
+                    ? 'bg-primary text-primary-foreground' 
+                    : 'bg-muted text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                }`}
+              >
+                <Percent className="w-4 h-4" />
+                Intereses ARCA
+              </button>
             </div>
 
             <div className="flex items-start gap-4">
@@ -188,6 +212,14 @@ export default function Index() {
 
           {activeView === 'aging' && (
             <DebtAging key={refreshKey} />
+          )}
+
+          {activeView === 'refinancing' && (
+            <DebtRefinancing />
+          )}
+
+          {activeView === 'interests' && (
+            <InterestCalculator />
           )}
         </div>
       </main>
