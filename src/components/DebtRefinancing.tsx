@@ -494,15 +494,23 @@ export function DebtRefinancing() {
             {/* Exchange Rate Card */}
             <Card className="bg-gradient-to-r from-primary/10 to-success/10 border-primary/20">
               <CardContent className="p-3">
-                <div className="flex items-center gap-4">
-                  <div>
-                    <p className="text-xs text-muted-foreground">TC Vendedor BNA</p>
-                    <p className="text-xl font-bold text-foreground">
-                      {rates.oficial.venta > 0 ? `$ ${formatNumber(rates.oficial.venta)}` : '—'}
-                    </p>
+                <div className="flex items-center gap-3">
+                  <div className="flex-1">
+                    <p className="text-xs text-muted-foreground mb-1">TC Vendedor BNA</p>
+                    <div className="flex items-center gap-2">
+                      <span className="text-muted-foreground">$</span>
+                      <Input
+                        type="number"
+                        value={exchangeRate || ''}
+                        onChange={(e) => setExchangeRate(parseFloat(e.target.value) || 0)}
+                        className="h-8 w-24 text-lg font-bold"
+                        placeholder="0"
+                        step="0.01"
+                      />
+                    </div>
                     {rates.lastUpdate && (
-                      <p className="text-[10px] text-muted-foreground">
-                        {rates.lastUpdate.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
+                      <p className="text-[10px] text-muted-foreground mt-1">
+                        API: {rates.lastUpdate.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
                       </p>
                     )}
                   </div>
@@ -511,6 +519,7 @@ export function DebtRefinancing() {
                     size="sm"
                     onClick={fetchExchangeRate}
                     disabled={rates.loading}
+                    title="Actualizar desde API"
                   >
                     <RefreshCw className={`w-4 h-4 ${rates.loading ? 'animate-spin' : ''}`} />
                   </Button>
