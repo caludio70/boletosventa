@@ -450,7 +450,23 @@ export interface MonthlyPaymentSummary {
   payments: FuturePayment[];
 }
 
-// Get future payments (checks with due date in the future)
+// Check if a payment is already collected (USD or transfer)
+function isAlreadyCollected(op: Partial<OperationRow>): boolean {
+  const formaPago = (op.formaPago || '').toLowerCase();
+  const chequeTransf = (op.chequeTransf || '').toLowerCase();
+  
+  // If it's a transfer or USD payment, it's already collected
+  if (formaPago.includes('transfer') || formaPago.includes('usd') || formaPago.includes('dolar')) {
+    return true;
+  }
+  if (chequeTransf.includes('transfer') || chequeTransf.includes('usd') || chequeTransf.includes('dolar')) {
+    return true;
+  }
+  
+  return false;
+}
+
+// Get future payments (only checks with due date in the future - excludes transfers and USD payments)
 export function getFuturePayments(): FuturePayment[] {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -458,8 +474,16 @@ export function getFuturePayments(): FuturePayment[] {
   const futurePayments: FuturePayment[] = [];
   
   for (const op of rawOperations) {
-    // Check if there's a check due date in the future
+    // Only include if:
+    // 1. Has a check due date (vtoCheque) in the future
+    // 2. Has an amount (importeUSD > 0)
+    // 3. Is NOT already collected (not a transfer or USD payment)
     if (op.vtoCheque && op.vtoCheque > today && op.importeUSD && op.importeUSD > 0) {
+      // Skip already collected payments (transfers, USD)
+      if (isAlreadyCollected(op)) {
+        continue;
+      }
+      
       futurePayments.push({
         dueDate: op.vtoCheque,
         clientCode: op.codCliente || '',
@@ -479,18 +503,27 @@ export function getFuturePayments(): FuturePayment[] {
   return futurePayments;
 }
 
-// Get payments grouped by month (both past and future) - includes ALL operations with payments
+// Get projected payments grouped by month (only future check due dates - excludes already collected)
 export function getPaymentsByMonth(): MonthlyPaymentSummary[] {
   const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 
                       'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
   
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
   const monthlyMap = new Map<string, MonthlyPaymentSummary>();
   
   for (const op of rawOperations) {
-    // Use vtoCheque (check due date) first for future payments, then fechaPago for past payments
-    const paymentDate = op.vtoCheque || op.fechaPago;
+    // Only use vtoCheque (check due date) for projections - must be in the future
+    const paymentDate = op.vtoCheque;
     
-    if (paymentDate && op.importeUSD && op.importeUSD > 0) {
+    // Only include future check due dates with amount, excluding already collected payments
+    if (paymentDate && paymentDate > today && op.importeUSD && op.importeUSD > 0) {
+      // Skip already collected payments (transfers, USD)
+      if (isAlreadyCollected(op)) {
+        continue;
+      }
+      
       const year = paymentDate.getFullYear();
       const monthNum = paymentDate.getMonth();
       const key = `${year}-${monthNum}`;
@@ -516,7 +549,7 @@ export function getPaymentsByMonth(): MonthlyPaymentSummary[] {
         clientCode: op.codCliente || '',
         clientName: op.nombreCliente || '',
         ticketNumber: op.boleto || '',
-        detail: `${op.chequeTransf || 'Pago'}${op.cuota ? ` (Cuota ${op.cuota})` : ''}${op.recibo ? ` - Rec: ${op.recibo}` : ''}`,
+        detail: `${op.chequeTransf || 'Cheque'}${op.cuota ? ` (Cuota ${op.cuota})` : ''}${op.recibo ? ` - Rec: ${op.recibo}` : ''}`,
         amountARS: op.importeARS || 0,
         amountUSD: op.importeUSD || 0,
         exchangeRate: op.tipoCambio || 0,
