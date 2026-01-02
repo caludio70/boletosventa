@@ -20,19 +20,27 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { TicketCard } from '@/components/TicketCard';
 import { getTicketsWithoutPayments, getDebtAging, getAgingSummary, getTicketByNumber, DebtAgingItem } from '@/lib/realData';
 import { formatCurrency, formatDate } from '@/lib/formatters';
-import { AlertTriangle, Clock, DollarSign, FileWarning, Users, Download, FileSpreadsheet, Search, X } from 'lucide-react';
+import { AlertTriangle, Clock, DollarSign, FileWarning, Users, Download, FileSpreadsheet, Search, X, Calculator } from 'lucide-react';
 import { Ticket } from '@/lib/types';
 import { exportDebtAgingToExcel, exportDebtAgingToPDF } from '@/lib/exportUtils';
+import { useRefinancing } from '@/contexts/RefinancingContext';
 
-export function DebtAging() {
+interface DebtAgingProps {
+  onNavigateToRefinancing?: () => void;
+}
+
+export function DebtAging({ onNavigateToRefinancing }: DebtAgingProps) {
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [clientFilter, setClientFilter] = useState<string>('');
   const [ticketFilter, setTicketFilter] = useState<string>('');
   const [agingBucketFilter, setAgingBucketFilter] = useState<string>('all');
+  
+  const { setRefinancingData } = useRefinancing();
 
   const ticketsWithoutPayments = useMemo(() => getTicketsWithoutPayments(), []);
   const allDebtAging = useMemo(() => getDebtAging(), []);
@@ -88,6 +96,17 @@ export function DebtAging() {
     }
   };
 
+  const handleRefinanciar = (item: DebtAgingItem) => {
+    setRefinancingData({
+      clientName: item.clientName,
+      clientCode: item.clientCode,
+      ticketNumber: item.ticketNumber,
+      debtAmount: item.balance,
+      concept: `Refinanciación Boleto ${item.ticketNumber}`,
+    });
+    onNavigateToRefinancing?.();
+  };
+
   const clearFilters = () => {
     setClientFilter('');
     setTicketFilter('');
@@ -130,12 +149,13 @@ export function DebtAging() {
             <TableHead className="text-right">Saldo</TableHead>
             <TableHead className="text-center">Días</TableHead>
             <TableHead className="text-center">Aging</TableHead>
+            <TableHead className="text-center">Acción</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {items.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={showPaymentStatus ? 9 : 8} className="text-center text-muted-foreground py-8">
+              <TableCell colSpan={showPaymentStatus ? 10 : 9} className="text-center text-muted-foreground py-8">
                 No hay registros para mostrar
               </TableCell>
             </TableRow>
@@ -174,6 +194,26 @@ export function DebtAging() {
                   <Badge variant="outline" className={getBucketColor(item.agingBucket)}>
                     {getBucketLabel(item.agingBucket)}
                   </Badge>
+                </TableCell>
+                <TableCell className="text-center">
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-7 px-2 gap-1 text-xs"
+                          onClick={() => handleRefinanciar(item)}
+                        >
+                          <Calculator className="w-3 h-3" />
+                          Refinanciar
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Generar propuesta de refinanciación para este saldo</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 </TableCell>
               </TableRow>
             ))
