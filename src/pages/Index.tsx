@@ -54,17 +54,6 @@ export default function Index() {
 
   const totalsByTicket = getTotalsByTicket();
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-muted-foreground">Cargando datos...</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <RefinancingProvider>
       <div className="min-h-screen bg-background">
@@ -148,6 +137,13 @@ export default function Index() {
                 <ImportExcel onImport={handleImport} isLoading={isSaving} />
               </div>
             </div>
+
+            {isLoading && (
+              <div className="rounded-md border border-border bg-muted/30 p-3 flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                <span>Cargando datos…</span>
+              </div>
+            )}
 
             {activeView === 'search' && (
               <>

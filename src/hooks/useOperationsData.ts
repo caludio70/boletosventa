@@ -47,29 +47,44 @@ export function useOperationsData() {
 
   // Load data from database on mount
   useEffect(() => {
+    const withTimeout = async <T,>(promise: Promise<T>, ms: number, label: string): Promise<T> => {
+      return await Promise.race([
+        promise,
+        new Promise<T>((_, reject) => {
+          const id = window.setTimeout(() => {
+            reject(new Error(`Timeout (${ms}ms) en ${label}`));
+          }, ms);
+          // Ensure timer is cleared if promise resolves first
+          promise.finally(() => window.clearTimeout(id));
+        }),
+      ]);
+    };
+
     const loadData = async () => {
       setIsLoading(true);
       try {
-        // Check if database has data
-        const hasData = await hasOperationsInDb();
-        
+        const hasData = await withTimeout(hasOperationsInDb(), 8000, 'hasOperationsInDb');
+
         if (hasData) {
-          // Load from database
-          const dbOperations = await fetchOperationsFromDb();
-          setOperations(dbOperations);
-          console.log('Loaded', dbOperations.length, 'operations from database');
+          const dbOperations = await withTimeout(fetchOperationsFromDb(), 12000, 'fetchOperationsFromDb');
+          if (dbOperations.length > 0) {
+            setOperations(dbOperations);
+          }
         } else {
-          // Seed with default data
-          console.log('Database empty, seeding with default data...');
-          const success = await saveOperationsToDb(defaultOperations);
-          if (success) {
-            setOperations(defaultOperations);
-            console.log('Seeded database with', defaultOperations.length, 'operations');
+          const success = await withTimeout(saveOperationsToDb(defaultOperations), 12000, 'saveOperationsToDb (seed)');
+          // Aunque no se pueda guardar, dejamos datos locales para que la app funcione
+          setOperations(defaultOperations);
+          if (!success) {
+            toast.warning('No se pudo guardar en la base; usando datos locales');
           }
         }
       } catch (error) {
         console.error('Error loading data:', error);
-        toast.error('Error al cargar datos');
+        const local = getAllOperations();
+        if (local.length === 0) {
+          setOperations(defaultOperations);
+        }
+        toast.error('Error al cargar datos (usando datos locales)');
       } finally {
         setIsLoading(false);
       }
