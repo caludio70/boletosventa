@@ -12,7 +12,8 @@ export function Header() {
             </div>
             <div>
               <h1 className="text-lg font-semibold tracking-tight">AUTOBUS S.A.</h1>
-              <p className="text-primary-foreground/70 text-xs">Sistema de Gestión de Operaciones</p>
+              <p className="text-primary-foreground/70 text-xs">Av. Juan Bautista Alberdi 7334 (1440) Capital Federal</p>
+              <p className="text-primary-foreground/70 text-xs">CUIT 30-63148185-6</p>
             </div>
           </div>
           <ThemeToggle />
