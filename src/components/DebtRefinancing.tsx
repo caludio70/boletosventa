@@ -9,11 +9,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { DollarSign, RefreshCw, FileText, Plus, Trash2, Calculator, Building2 } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { DollarSign, RefreshCw, FileText, Plus, Trash2, Calculator, Building2, Info, X } from 'lucide-react';
 import { formatCurrency, formatNumber, formatDate } from '@/lib/formatters';
 import { toast } from 'sonner';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { useRefinancing } from '@/contexts/RefinancingContext';
 
 interface Proposal {
   id: string;
@@ -43,6 +45,8 @@ interface ExchangeRates {
 }
 
 export function DebtRefinancing() {
+  const { refinancingData, clearRefinancingData } = useRefinancing();
+  
   // Client data
   const [clientName, setClientName] = useState('');
   const [clientCuit, setClientCuit] = useState('');
@@ -78,6 +82,18 @@ export function DebtRefinancing() {
   const [showAddProposal, setShowAddProposal] = useState(false);
   const [newCuotas, setNewCuotas] = useState(6);
   const [newTasa, setNewTasa] = useState(3.5);
+
+  // Load data from context when refinancingData changes
+  useEffect(() => {
+    if (refinancingData) {
+      setClientName(refinancingData.clientName);
+      setConcept(refinancingData.concept);
+      setDebtAmount(refinancingData.debtAmount);
+      setCurrency('USD');
+      setProposals([]);
+      toast.success(`Datos cargados desde Aging: ${refinancingData.clientName}`);
+    }
+  }, [refinancingData]);
 
   // Initialize primer vencimiento
   useEffect(() => {
@@ -446,6 +462,21 @@ export function DebtRefinancing() {
 
   return (
     <div className="space-y-6">
+      {/* Alert when data comes from Aging */}
+      {refinancingData && (
+        <Alert className="bg-primary/10 border-primary/30">
+          <Info className="h-4 w-4" />
+          <AlertDescription className="flex items-center justify-between">
+            <span>
+              Datos cargados desde Aging: <strong>{refinancingData.clientName}</strong> - Boleto: <strong>{refinancingData.ticketNumber}</strong> - Saldo: <strong>USD {formatNumber(refinancingData.debtAmount)}</strong>
+            </span>
+            <Button variant="ghost" size="sm" onClick={clearRefinancingData} className="h-6 px-2">
+              <X className="w-4 h-4" />
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Header */}
       <Card>
         <CardHeader className="pb-3">
