@@ -201,7 +201,11 @@ export default function Index() {
             )}
 
             {activeView === 'totals' && (
-              <TotalsByTicketTable key={refreshKey} totals={totalsByTicket} />
+              <TotalsByTicketTable
+                key={refreshKey}
+                totals={totalsByTicket}
+                onNavigateToRefinancing={() => setActiveView('refinancing')}
+              />
             )}
 
             {activeView === 'projections' && (

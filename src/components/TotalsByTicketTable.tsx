@@ -7,14 +7,15 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { TicketCard } from '@/components/TicketCard';
 import { ClientSummaryCard } from '@/components/ClientSummaryCard';
-import { 
-  Search, 
-  FileSpreadsheet, 
+import {
+  Search,
+  FileSpreadsheet,
   FileText,
   X,
   ChevronUp,
   ChevronDown,
   MoreHorizontal,
+  Calculator,
   ArrowLeft,
 } from 'lucide-react';
 import {
@@ -29,19 +30,24 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { toast } from 'sonner';
+import { useRefinancing } from '@/contexts/RefinancingContext';
 
 interface TotalsByTicketTableProps {
   totals: TotalByTicket[];
+  onNavigateToRefinancing?: () => void;
 }
 
 type SortField = 'clientName' | 'ticketNumber' | 'ventaUSD' | 'saldoFinal';
 type SortOrder = 'asc' | 'desc';
 
-export function TotalsByTicketTable({ totals }: TotalsByTicketTableProps) {
+export function TotalsByTicketTable({ totals, onNavigateToRefinancing }: TotalsByTicketTableProps) {
   const [ticketFilter, setTicketFilter] = useState('');
   const [clientFilter, setClientFilter] = useState('');
   const [sortField, setSortField] = useState<SortField>('ticketNumber');
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
+
+  const { setRefinancingData } = useRefinancing();
   
   // Modal states
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
@@ -154,6 +160,27 @@ export function TotalsByTicketTable({ totals }: TotalsByTicketTableProps) {
         setIsClientModalOpen(true);
       }
     }
+  };
+
+  const handleRefinanciar = (ticketNumber: string) => {
+    const ticket = getTicketByNumber(ticketNumber);
+    if (!ticket) {
+      toast.error('No se encontró el boleto para refinanciar');
+      return;
+    }
+    if (ticket.finalBalance <= 0) {
+      toast.error('Este boleto no tiene saldo pendiente para refinanciar');
+      return;
+    }
+
+    setRefinancingData({
+      clientName: ticket.clientName,
+      clientCode: ticket.clientCode,
+      ticketNumber: ticket.ticketNumber,
+      debtAmount: ticket.finalBalance,
+      concept: `Refinanciación Boleto ${ticket.ticketNumber}`,
+    });
+    onNavigateToRefinancing?.();
   };
 
   return (
@@ -308,23 +335,37 @@ export function TotalsByTicketTable({ totals }: TotalsByTicketTableProps) {
                   {getStatusBadge(row.saldoFinal)}
                 </td>
                 <td className="px-4 py-2.5 text-center">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
-                        <MoreHorizontal className="w-4 h-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => handleExportTicket(row.ticketNumber, 'excel')}>
-                        <FileSpreadsheet className="w-4 h-4 mr-2" />
-                        Exportar Excel
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleExportTicket(row.ticketNumber, 'pdf')}>
-                        <FileText className="w-4 h-4 mr-2" />
-                        Exportar PDF
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  <div className="flex items-center justify-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-7 px-2 gap-1 text-xs"
+                      onClick={() => handleRefinanciar(row.ticketNumber)}
+                      disabled={row.saldoFinal <= 0}
+                      title={row.saldoFinal <= 0 ? 'Sin saldo para refinanciar' : 'Refinanciar'}
+                    >
+                      <Calculator className="w-3 h-3" />
+                      <span className="hidden md:inline">Refinanciar</span>
+                    </Button>
+
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="sm" className="h-7 w-7 p-0" title="Acciones">
+                          <MoreHorizontal className="w-4 h-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => handleExportTicket(row.ticketNumber, 'excel')}>
+                          <FileSpreadsheet className="w-4 h-4 mr-2" />
+                          Exportar Excel
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleExportTicket(row.ticketNumber, 'pdf')}>
+                          <FileText className="w-4 h-4 mr-2" />
+                          Exportar PDF
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
                 </td>
               </tr>
             ))}
