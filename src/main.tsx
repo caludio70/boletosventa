@@ -11,12 +11,13 @@ let updateSW: (reloadPage?: boolean) => Promise<void>;
 updateSW = registerSW({
   immediate: true,
   onNeedRefresh() {
-    toast("Hay una nueva versión disponible.", {
-      duration: Infinity,
-      action: {
-        label: "Actualizar",
-        onClick: () => void updateSW(true),
-      },
+    // Auto-actualizar para que siempre veas los botones/cambios nuevos
+    setTimeout(() => {
+      void updateSW(true);
+    }, 800);
+
+    toast("Actualizando a la última versión…", {
+      duration: 2500,
     });
   },
   onOfflineReady() {
