@@ -14,16 +14,9 @@ import {
   X,
   ChevronUp,
   ChevronDown,
-  MoreHorizontal,
   Calculator,
   ArrowLeft,
 } from 'lucide-react';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import {
   Dialog,
   DialogContent,
@@ -345,26 +338,30 @@ export function TotalsByTicketTable({ totals, onNavigateToRefinancing }: TotalsB
                       title={row.saldoFinal <= 0 ? 'Sin saldo para refinanciar' : 'Refinanciar'}
                     >
                       <Calculator className="w-3 h-3" />
-                      <span className="hidden md:inline">Refinanciar</span>
+                      <span>Refinanciar</span>
                     </Button>
 
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm" className="h-7 w-7 p-0" title="Acciones">
-                          <MoreHorizontal className="w-4 h-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleExportTicket(row.ticketNumber, 'excel')}>
-                          <FileSpreadsheet className="w-4 h-4 mr-2" />
-                          Exportar Excel
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleExportTicket(row.ticketNumber, 'pdf')}>
-                          <FileText className="w-4 h-4 mr-2" />
-                          Exportar PDF
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 w-7 p-0"
+                      onClick={() => handleExportTicket(row.ticketNumber, 'excel')}
+                      title="Exportar Excel"
+                      aria-label="Exportar Excel"
+                    >
+                      <FileSpreadsheet className="w-4 h-4" />
+                    </Button>
+
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 w-7 p-0"
+                      onClick={() => handleExportTicket(row.ticketNumber, 'pdf')}
+                      title="Exportar PDF"
+                      aria-label="Exportar PDF"
+                    >
+                      <FileText className="w-4 h-4" />
+                    </Button>
                   </div>
                 </td>
               </tr>
