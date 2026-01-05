@@ -8,19 +8,20 @@ import { PaymentProjections } from '@/components/PaymentProjections';
 import { DebtAging } from '@/components/DebtAging';
 import { DebtRefinancing } from '@/components/DebtRefinancing';
 import { InterestCalculator } from '@/components/InterestCalculator';
+import { InflationCalculator } from '@/components/InflationCalculator';
 import { EmptyState } from '@/components/EmptyState';
 import { ImportExcel } from '@/components/ImportExcel';
 import { PDFUploader } from '@/components/PDFUploader';
 import { searchTicketsOrClient, getClientSummary, getTotalsByTicket } from '@/lib/realData';
 import { Ticket, ClientSummary, OperationRow } from '@/lib/types';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { FileText, LayoutList, Table, Calendar, Loader2, AlertTriangle, Calculator, Percent } from 'lucide-react';
+import { FileText, LayoutList, Table, Calendar, Loader2, AlertTriangle, Calculator, Percent, TrendingUp } from 'lucide-react';
 import { useOperationsData } from '@/hooks/useOperationsData';
 import { RefinancingProvider } from '@/contexts/RefinancingContext';
 
 export default function Index() {
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeView, setActiveView] = useState<'search' | 'totals' | 'projections' | 'aging' | 'refinancing' | 'interests'>('totals');
+  const [activeView, setActiveView] = useState<'search' | 'totals' | 'projections' | 'aging' | 'refinancing' | 'interests' | 'inflation'>('totals');
   const [searchResult, setSearchResult] = useState<{
     type: 'ticket' | 'client' | 'not_found' | 'initial';
     tickets: Ticket[];
@@ -130,6 +131,17 @@ export default function Index() {
                   <Percent className="w-4 h-4" />
                   Intereses ARCA
                 </button>
+                <button
+                  onClick={() => setActiveView('inflation')}
+                  className={`inline-flex items-center gap-2 px-3 py-1.5 rounded text-sm font-medium transition-colors ${
+                    activeView === 'inflation' 
+                      ? 'bg-primary text-primary-foreground' 
+                      : 'bg-muted text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                  }`}
+                >
+                  <TrendingUp className="w-4 h-4" />
+                  Calculadora Inflación
+                </button>
               </div>
 
               <div className="flex items-start gap-4">
@@ -222,6 +234,10 @@ export default function Index() {
 
             {activeView === 'interests' && (
               <InterestCalculator />
+            )}
+
+            {activeView === 'inflation' && (
+              <InflationCalculator />
             )}
           </div>
         </main>
