@@ -468,17 +468,24 @@ function isAlreadyCollected(op: Partial<OperationRow>): boolean {
   return false;
 }
 
-// Get all pending check payments (with check due date - vtoCheque)
+// Get only FUTURE pending check payments (with check due date after today)
 export function getFuturePayments(): FuturePayment[] {
   const futurePayments: FuturePayment[] = [];
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
   
   for (const op of rawOperations) {
     // Include if:
-    // 1. Has a check due date (vtoCheque)
+    // 1. Has a check due date (vtoCheque) AFTER today
     // 2. Has an amount (ARS or USD)
     // 3. Is NOT already collected (transfer without check date)
     const hasAmount = (op.importeUSD || 0) > 0 || (op.importeARS || 0) > 0;
     if (op.vtoCheque && hasAmount) {
+      // Skip if check due date is in the past (already collected)
+      if (op.vtoCheque < today) {
+        continue;
+      }
+      
       // Skip already collected payments
       if (isAlreadyCollected(op)) {
         continue;
@@ -503,20 +510,22 @@ export function getFuturePayments(): FuturePayment[] {
   return futurePayments;
 }
 
-// Get all check payments grouped by month (by check due date - vtoCheque)
+// Get only FUTURE check payments grouped by month (vtoCheque > today)
 export function getPaymentsByMonth(): MonthlyPaymentSummary[] {
   const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 
                       'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
   
   const monthlyMap = new Map<string, MonthlyPaymentSummary>();
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
   
   for (const op of rawOperations) {
     // Use vtoCheque (check due date) for projections
     const paymentDate = op.vtoCheque;
     
-    // Include check payments with due date and amount (ARS or USD)
+    // Include only FUTURE check payments with due date after today
     const hasAmount = (op.importeUSD || 0) > 0 || (op.importeARS || 0) > 0;
-    if (paymentDate && hasAmount) {
+    if (paymentDate && hasAmount && paymentDate >= today) {
       // Skip already collected payments
       if (isAlreadyCollected(op)) {
         continue;

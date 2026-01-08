@@ -60,7 +60,7 @@ export function PaymentProjections() {
   const [ticketFilter, setTicketFilter] = useState<string>('');
   
   // Exchange rate of the day for converting ARS to USD (BNA vendedor)
-  const [currentExchangeRate, setCurrentExchangeRate] = useState<number>(1450);
+  const [currentExchangeRate, setCurrentExchangeRate] = useState<number>(1485);
   
   const allFuturePayments = useMemo(() => getFuturePayments(), []);
   const allMonthlyPayments = useMemo(() => getPaymentsByMonth(), []);
