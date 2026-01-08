@@ -328,7 +328,7 @@ export function TotalsByTicketTable({ totals, onNavigateToRefinancing }: TotalsB
                   {getStatusBadge(row.saldoFinal)}
                 </td>
                 <td className="px-4 py-2.5 text-center">
-                  <div className="flex items-center justify-center gap-2">
+                  <div className="flex flex-col sm:flex-row sm:flex-wrap items-center justify-center gap-2">
                     <Button
                       variant="outline"
                       size="sm"
@@ -341,27 +341,29 @@ export function TotalsByTicketTable({ totals, onNavigateToRefinancing }: TotalsB
                       <span>Refinanciar</span>
                     </Button>
 
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-7 w-7 p-0"
-                      onClick={() => handleExportTicket(row.ticketNumber, 'excel')}
-                      title="Exportar Excel"
-                      aria-label="Exportar Excel"
-                    >
-                      <FileSpreadsheet className="w-4 h-4" />
-                    </Button>
+                    <div className="flex items-center justify-center gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 w-7 p-0"
+                        onClick={() => handleExportTicket(row.ticketNumber, 'excel')}
+                        title="Exportar Excel"
+                        aria-label="Exportar Excel"
+                      >
+                        <FileSpreadsheet className="w-4 h-4" />
+                      </Button>
 
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-7 w-7 p-0"
-                      onClick={() => handleExportTicket(row.ticketNumber, 'pdf')}
-                      title="Exportar PDF"
-                      aria-label="Exportar PDF"
-                    >
-                      <FileText className="w-4 h-4" />
-                    </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 w-7 p-0"
+                        onClick={() => handleExportTicket(row.ticketNumber, 'pdf')}
+                        title="Exportar PDF"
+                        aria-label="Exportar PDF"
+                      >
+                        <FileText className="w-4 h-4" />
+                      </Button>
+                    </div>
                   </div>
                 </td>
               </tr>
