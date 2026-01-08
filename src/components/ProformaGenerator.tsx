@@ -133,37 +133,62 @@ export function ProformaGenerator() {
     };
 
     try {
-      // Cargar imagen de firma
-      const firmaImg = await loadImage('/logos/jose-viegas-firma.png');
+      // Cargar imágenes
+      const [ugarteImg, mercedesImg, firmaImg] = await Promise.all([
+        loadImage('/logos/ugarte-logo.jpg'),
+        loadImage('/logos/mercedes-benz-star.png'),
+        loadImage('/logos/jose-viegas-firma.png')
+      ]);
       
-      // Header logos y datos empresa
-      doc.setFontSize(16);
-      doc.setFont('helvetica', 'bold');
-      doc.text('Mercedes-Benz', 15, 20);
+      // Header - Logo Ugarte (izquierda) y Mercedes-Benz (derecha)
+      doc.addImage(ugarteImg, 'JPEG', 15, 8, 50, 15);
+      doc.addImage(mercedesImg, 'PNG', pageWidth - 70, 5, 55, 20);
       
-      // Firma en encabezado (lado derecho)
-      doc.addImage(firmaImg, 'PNG', pageWidth - 55, 8, 40, 25);
-      
+      // Fecha
       doc.setFontSize(10);
-      doc.text(`FECHA: ${new Date(fecha).toLocaleDateString('es-AR')}`, pageWidth - 55, 38);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`FECHA:`, pageWidth - 45, 30);
+      doc.text(`${new Date(fecha).toLocaleDateString('es-AR')}`, pageWidth - 15, 30, { align: 'right' });
       
-      doc.setFontSize(14);
+      // Línea separadora
+      doc.setLineWidth(0.5);
+      doc.line(15, 35, pageWidth - 15, 35);
+      
+      // Datos empresa
+      doc.setFontSize(11);
       doc.setFont('helvetica', 'bold');
-      doc.text('AUTOBUS SA', 15, 35);
+      doc.text('AUTOBUS SA', 15, 42);
       
       doc.setFontSize(9);
       doc.setFont('helvetica', 'normal');
-      doc.text('Concesionario Oficial Mercedes Benz', 15, 41);
-      doc.text('Av. Juan B. Alberdi 7334 - C.A.B.A.', 15, 46);
-      doc.text('CUIT: 30-63148185-6   IVA Responsable Inscripto', 15, 51);
+      doc.text('Concesionario Oficial Mercedes Benz', 15, 48);
+      doc.text('Av. Juan B. Alberdi 7334 - C.A.B.A.', 15, 53);
+      doc.text('CUIT: 30-63148185-6 IVA Responsable Inscripto', 15, 58);
+      
+      // Tipo documento
+      doc.setFont('helvetica', 'bold');
+      doc.text('Factura Proforma', pageWidth / 2, 42, { align: 'center' });
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.text('DOCUMENTO NO VALIDO COMO FACTURA', pageWidth / 2, 48, { align: 'center' });
+      
+      // Línea separadora
+      doc.line(15, 62, pageWidth - 15, 62);
       
       // Datos cliente
       doc.setFontSize(10);
-      doc.setFont('helvetica', 'bold');
-      doc.text(`Señor/es: ${cliente.senores}`, 15, 65);
       doc.setFont('helvetica', 'normal');
-      doc.text(`CUIT: ${cliente.cuit}`, 15, 71);
-      doc.text(`Domicilio: ${cliente.domicilio}`, 15, 77);
+      doc.text(`Señor/es:`, 15, 70);
+      doc.setFont('helvetica', 'bold');
+      doc.text(`${cliente.senores}`, 40, 70);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`CUIT:`, 15, 76);
+      doc.text(`${cliente.cuit}`, 40, 76);
+      doc.text(`Domicilio:`, 15, 82);
+      doc.text(`${cliente.domicilio}`, 40, 82);
+      
+      // Línea separadora
+      doc.line(15, 87, pageWidth - 15, 87);
       
       // Tabla de items
       const tableData = items.map(item => {
@@ -179,16 +204,22 @@ export function ProformaGenerator() {
       });
 
       autoTable(doc, {
-        startY: 85,
+        startY: 92,
         head: [['Cantidad', 'Descripción', 'P.UNIT S./IVA', 'IMPORTE S./IVA', 'IMPORTE C./IVA']],
         body: tableData,
         headStyles: { 
-          fillColor: [200, 200, 200], 
+          fillColor: [255, 255, 200], 
           textColor: [0, 0, 0],
           fontStyle: 'bold',
-          fontSize: 9
+          fontSize: 9,
+          lineWidth: 0.1,
+          lineColor: [0, 0, 0]
         },
-        bodyStyles: { fontSize: 8 },
+        bodyStyles: { 
+          fontSize: 8,
+          lineWidth: 0.1,
+          lineColor: [0, 0, 0]
+        },
         columnStyles: {
           0: { halign: 'center', cellWidth: 20 },
           1: { cellWidth: 80 },
@@ -203,20 +234,40 @@ export function ProformaGenerator() {
       const finalY = (doc as any).lastAutoTable.finalY + 10;
       
       doc.setFontSize(10);
-      doc.text(`sub-total s/iva: ${formatCurrency(calcularSubtotal())}`, pageWidth - 15, finalY, { align: 'right' });
-      doc.text(`iva ${ivaRate.toFixed(2)}%: ${formatCurrency(calcularIVA())}`, pageWidth - 15, finalY + 6, { align: 'right' });
+      doc.text(`sub-total s/iva:`, pageWidth - 60, finalY);
+      doc.text(`${formatCurrency(calcularSubtotal())}`, pageWidth - 15, finalY, { align: 'right' });
+      
+      doc.text(`iva`, pageWidth - 60, finalY + 6);
+      doc.text(`${ivaRate.toFixed(2)}%`, pageWidth - 45, finalY + 6);
+      doc.text(`${formatCurrency(calcularIVA())}`, pageWidth - 15, finalY + 6, { align: 'right' });
+      
       doc.setFont('helvetica', 'bold');
-      doc.text(`total: ${formatCurrency(calcularTotal())}`, pageWidth - 15, finalY + 12, { align: 'right' });
+      doc.text(`total`, pageWidth - 60, finalY + 12);
+      
+      // Recuadro para total
+      doc.setLineWidth(0.5);
+      doc.rect(pageWidth - 50, finalY + 8, 35, 6);
+      doc.text(`${formatCurrency(calcularTotal())}`, pageWidth - 15, finalY + 12, { align: 'right' });
       
       // Monto en letras
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(9);
+      doc.setTextColor(0, 0, 150);
+      const currencyLabel = currency === 'USD' ? 'son Dólares' : 'son PESOS';
+      doc.text(currencyLabel, 15, finalY + 25);
+      doc.setTextColor(0, 0, 0);
       const montoEnLetras = numberToWords(calcularTotal(), currency);
-      doc.text(montoEnLetras, 15, finalY + 25);
+      doc.text(montoEnLetras.replace(/^son (Dólares|Pesos) /, ''), 15, finalY + 31);
       
       // Forma de pago y plazo
-      doc.text(`Forma de pago: ${formaPago}`, 15, finalY + 35);
-      doc.text(`Plazo de entrega: ${plazoEntrega}`, 15, finalY + 41);
+      doc.setFontSize(9);
+      doc.text(`Forma de pago:`, 15, finalY + 42);
+      doc.text(`${formaPago}`, 45, finalY + 42);
+      doc.text(`Plazo de entrega:`, 15, finalY + 48);
+      doc.text(`${plazoEntrega}`, 45, finalY + 48);
+      
+      // Firma en pie de página (lado derecho)
+      doc.addImage(firmaImg, 'PNG', pageWidth - 60, finalY + 35, 45, 30);
       
       // Pie - leyenda
       doc.setFontSize(8);
@@ -224,14 +275,7 @@ export function ProformaGenerator() {
       const leyenda = currency === 'USD' 
         ? 'Cotización Sujeta a modificaciones lista Precios MERCEDES BENZ y/o valor dólar.'
         : 'Cotización Sujeta a modificaciones lista Precios MERCEDES BENZ.';
-      doc.text(leyenda, 15, finalY + 55);
-      
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(10);
-      doc.text('COTIZACIÓN SIN VALOR FISCAL', pageWidth / 2, finalY + 65, { align: 'center' });
-      
-      // Firma en pie de página (lado derecho)
-      doc.addImage(firmaImg, 'PNG', pageWidth - 55, pageHeight - 40, 40, 25);
+      doc.text(leyenda, 15, finalY + 70);
       
       // Guardar PDF
       const fileName = `PROFORMA_${cliente.senores.replace(/\s+/g, '_').substring(0, 20)}_${fecha}.pdf`;
