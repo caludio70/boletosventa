@@ -231,12 +231,12 @@ export function ProformaGenerator() {
           fontSize: 9,
           font: 'helvetica',
           lineWidth: 0,
-          cellPadding: 2,
+          cellPadding: 1.5,
         },
         bodyStyles: { 
           fontSize: 9,
           font: 'helvetica',
-          cellPadding: 3,
+          cellPadding: 1.5,
           lineWidth: 0,
         },
         columnStyles: {
@@ -256,7 +256,15 @@ export function ProformaGenerator() {
       });
 
       // ========== TOTALES ==========
-      const finalY = (doc as any).lastAutoTable.finalY + 15;
+      const pageHeight = doc.internal.pageSize.getHeight();
+      let finalY = (doc as any).lastAutoTable.finalY + 8;
+      
+      // Verificar si hay espacio suficiente para el pie de página (necesitamos ~85mm)
+      const spaceNeeded = 85;
+      if (finalY + spaceNeeded > pageHeight) {
+        doc.addPage();
+        finalY = 20;
+      }
       
       // Línea sobre totales
       doc.setLineWidth(0.3);
