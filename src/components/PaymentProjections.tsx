@@ -59,6 +59,9 @@ export function PaymentProjections() {
   const [clientFilter, setClientFilter] = useState<string>('');
   const [ticketFilter, setTicketFilter] = useState<string>('');
   
+  // Exchange rate of the day for converting ARS to USD (BNA vendedor)
+  const [currentExchangeRate, setCurrentExchangeRate] = useState<number>(1450);
+  
   const allFuturePayments = useMemo(() => getFuturePayments(), []);
   const allMonthlyPayments = useMemo(() => getPaymentsByMonth(), []);
   const allPendingBalances = useMemo(() => getPendingBalances(), []);
@@ -128,15 +131,16 @@ export function PaymentProjections() {
     return monthDate < new Date(today.getFullYear(), today.getMonth(), 1);
   });
   
-  // Total all check payments (future and past)
-  const totalAllCheckPaymentsUSD = futurePayments.reduce((sum, p) => sum + p.amountUSD, 0);
+  // Total all check payments (future and past) - convert ARS to USD using current exchange rate
+  const totalAllCheckPaymentsUSD = futurePayments.reduce((sum, p) => 
+    sum + p.amountUSD + (p.amountUSD === 0 ? p.amountARS / currentExchangeRate : 0), 0);
   const totalAllCheckPaymentsARS = futurePayments.reduce((sum, p) => sum + p.amountARS, 0);
   const totalPendingUSD = pendingBalances.reduce((sum, p) => sum + p.totalPending, 0);
   
-  // Chart data for all monthly payments (USD)
+  // Chart data for all monthly payments - convert ARS to USD using current exchange rate
   const chartData = monthlyPayments.map(m => ({
     name: `${m.month.substring(0, 3)} ${m.year}`,
-    total: m.totalUSD,
+    total: m.totalUSD + (m.totalARS / currentExchangeRate),
     count: m.paymentCount,
   }));
 
@@ -255,7 +259,7 @@ export function PaymentProjections() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="space-y-2">
               <label className="text-sm font-medium">Cliente</label>
               <Input
@@ -273,6 +277,19 @@ export function PaymentProjections() {
                 onChange={(e) => setTicketFilter(e.target.value)}
                 className="h-9"
               />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">TC BNA Vendedor (hoy)</label>
+              <div className="relative">
+                <DollarSign className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="number"
+                  placeholder="1450"
+                  value={currentExchangeRate}
+                  onChange={(e) => setCurrentExchangeRate(Number(e.target.value) || 1450)}
+                  className="h-9 pl-8"
+                />
+              </div>
             </div>
             <div className="flex items-end">
               {hasActiveFilters && (
@@ -429,7 +446,12 @@ export function PaymentProjections() {
                             </TableCell>
                             <TableCell>{payment.detail}</TableCell>
                             <TableCell className="text-right font-medium">
-                              {formatCurrency(payment.amountUSD)}
+                              {formatCurrency(payment.amountUSD > 0 ? payment.amountUSD : payment.amountARS / currentExchangeRate)}
+                              {payment.amountUSD === 0 && payment.amountARS > 0 && (
+                                <span className="block text-xs text-muted-foreground">
+                                  (${new Intl.NumberFormat('es-AR').format(payment.amountARS)} ARS)
+                                </span>
+                              )}
                             </TableCell>
                           </TableRow>
                         );
@@ -484,15 +506,16 @@ export function PaymentProjections() {
                             </Button>
                           </TableCell>
                           {monthColumns.map(col => {
-                            const amount = client.months.get(col.key) || 0;
+                            const amount = client.months.get(col.key) || { usd: 0, ars: 0 };
+                            const totalAmount = amount.usd + (amount.ars / currentExchangeRate);
                             return (
                               <TableCell key={col.key} className="text-right tabular-nums">
-                                {amount > 0 ? formatCurrency(amount) : '—'}
+                                {totalAmount > 0 ? formatCurrency(totalAmount) : '—'}
                               </TableCell>
                             );
                           })}
                           <TableCell className="text-right tabular-nums font-bold">
-                            {formatCurrency(client.total)}
+                            {formatCurrency(client.totalUSD + (client.totalARS / currentExchangeRate))}
                           </TableCell>
                         </TableRow>
                       ))}
@@ -502,13 +525,17 @@ export function PaymentProjections() {
                         <TableCell className="sticky left-0 bg-muted font-bold z-20">
                           TOTALES
                         </TableCell>
-                        {monthColumns.map(col => (
-                          <TableCell key={col.key} className="text-right tabular-nums font-bold">
-                            {formatCurrency(columnTotals.get(col.key) || 0)}
-                          </TableCell>
-                        ))}
+                        {monthColumns.map(col => {
+                          const amount = columnTotals.get(col.key) || { usd: 0, ars: 0 };
+                          const totalAmount = amount.usd + (amount.ars / currentExchangeRate);
+                          return (
+                            <TableCell key={col.key} className="text-right tabular-nums font-bold">
+                              {formatCurrency(totalAmount)}
+                            </TableCell>
+                          );
+                        })}
                         <TableCell className="text-right tabular-nums font-bold text-lg">
-                          {formatCurrency(grandTotalUSD)}
+                          {formatCurrency(grandTotalUSD + (grandTotalARS / currentExchangeRate))}
                         </TableCell>
                       </TableRow>
                     </tfoot>
