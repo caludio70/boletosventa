@@ -63,99 +63,99 @@ export default function Index() {
         <main className="container py-6">
           <div className="max-w-6xl mx-auto space-y-6">
             {/* Navigation */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <div className="flex gap-2 flex-wrap">
+            <div className="flex flex-col gap-3">
+              <div className="grid grid-cols-4 sm:grid-cols-4 md:grid-cols-8 gap-1.5">
                 <button
                   onClick={() => setActiveView('search')}
-                  className={`inline-flex items-center gap-2 px-3 py-1.5 rounded text-sm font-medium transition-colors ${
+                  className={`flex flex-col items-center gap-1 px-2 py-2 rounded text-xs font-medium transition-colors ${
                     activeView === 'search' 
                       ? 'bg-primary text-primary-foreground' 
                       : 'bg-muted text-muted-foreground hover:bg-accent hover:text-accent-foreground'
                   }`}
                 >
                   <FileText className="w-4 h-4" />
-                  Buscar Operación
+                  <span className="text-center leading-tight">Buscar</span>
                 </button>
                 <button
                   onClick={() => setActiveView('totals')}
-                  className={`inline-flex items-center gap-2 px-3 py-1.5 rounded text-sm font-medium transition-colors ${
+                  className={`flex flex-col items-center gap-1 px-2 py-2 rounded text-xs font-medium transition-colors ${
                     activeView === 'totals' 
                       ? 'bg-primary text-primary-foreground' 
                       : 'bg-muted text-muted-foreground hover:bg-accent hover:text-accent-foreground'
                   }`}
                 >
                   <Table className="w-4 h-4" />
-                  Total por Boleto
+                  <span className="text-center leading-tight">Boletos</span>
                 </button>
                 <button
                   onClick={() => setActiveView('projections')}
-                  className={`inline-flex items-center gap-2 px-3 py-1.5 rounded text-sm font-medium transition-colors ${
+                  className={`flex flex-col items-center gap-1 px-2 py-2 rounded text-xs font-medium transition-colors ${
                     activeView === 'projections' 
                       ? 'bg-primary text-primary-foreground' 
                       : 'bg-muted text-muted-foreground hover:bg-accent hover:text-accent-foreground'
                   }`}
                 >
                   <Calendar className="w-4 h-4" />
-                  Proyecciones
+                  <span className="text-center leading-tight">Proyecc.</span>
                 </button>
                 <button
                   onClick={() => setActiveView('aging')}
-                  className={`inline-flex items-center gap-2 px-3 py-1.5 rounded text-sm font-medium transition-colors ${
+                  className={`flex flex-col items-center gap-1 px-2 py-2 rounded text-xs font-medium transition-colors ${
                     activeView === 'aging' 
                       ? 'bg-primary text-primary-foreground' 
                       : 'bg-muted text-muted-foreground hover:bg-accent hover:text-accent-foreground'
                   }`}
                 >
                   <AlertTriangle className="w-4 h-4" />
-                  Aging Deuda
+                  <span className="text-center leading-tight">Aging</span>
                 </button>
                 <button
                   onClick={() => setActiveView('refinancing')}
-                  className={`inline-flex items-center gap-2 px-3 py-1.5 rounded text-sm font-medium transition-colors ${
+                  className={`flex flex-col items-center gap-1 px-2 py-2 rounded text-xs font-medium transition-colors ${
                     activeView === 'refinancing' 
                       ? 'bg-primary text-primary-foreground' 
                       : 'bg-muted text-muted-foreground hover:bg-accent hover:text-accent-foreground'
                   }`}
                 >
                   <Calculator className="w-4 h-4" />
-                  Refinanciación
+                  <span className="text-center leading-tight">Refinanc.</span>
                 </button>
                 <button
                   onClick={() => setActiveView('interests')}
-                  className={`inline-flex items-center gap-2 px-3 py-1.5 rounded text-sm font-medium transition-colors ${
+                  className={`flex flex-col items-center gap-1 px-2 py-2 rounded text-xs font-medium transition-colors ${
                     activeView === 'interests' 
                       ? 'bg-primary text-primary-foreground' 
                       : 'bg-muted text-muted-foreground hover:bg-accent hover:text-accent-foreground'
                   }`}
                 >
                   <Percent className="w-4 h-4" />
-                  Intereses ARCA
+                  <span className="text-center leading-tight">ARCA</span>
                 </button>
                 <button
                   onClick={() => setActiveView('inflation')}
-                  className={`inline-flex items-center gap-2 px-3 py-1.5 rounded text-sm font-medium transition-colors ${
+                  className={`flex flex-col items-center gap-1 px-2 py-2 rounded text-xs font-medium transition-colors ${
                     activeView === 'inflation' 
                       ? 'bg-primary text-primary-foreground' 
                       : 'bg-muted text-muted-foreground hover:bg-accent hover:text-accent-foreground'
                   }`}
                 >
                   <TrendingUp className="w-4 h-4" />
-                  Calculadora Inflación
+                  <span className="text-center leading-tight">Inflación</span>
                 </button>
                 <button
                   onClick={() => setActiveView('proforma')}
-                  className={`inline-flex items-center gap-2 px-3 py-1.5 rounded text-sm font-medium transition-colors ${
+                  className={`flex flex-col items-center gap-1 px-2 py-2 rounded text-xs font-medium transition-colors ${
                     activeView === 'proforma' 
                       ? 'bg-primary text-primary-foreground' 
                       : 'bg-muted text-muted-foreground hover:bg-accent hover:text-accent-foreground'
                   }`}
                 >
                   <FilePlus className="w-4 h-4" />
-                  Proforma
+                  <span className="text-center leading-tight">Proforma</span>
                 </button>
               </div>
 
-              <div className="flex items-start gap-4">
+              <div className="flex items-center gap-2 justify-end">
                 <PDFUploader />
                 <ImportExcel onImport={handleImport} isLoading={isSaving} />
               </div>
