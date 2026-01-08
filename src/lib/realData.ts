@@ -389,7 +389,7 @@ export function getDebtAging(): DebtAgingItem[] {
   const today = new Date();
   
   return tickets
-    .filter(t => t.finalBalance > 100) // Only tickets with pending balance > USD 100
+    .filter(t => t.finalBalance > 0) // Only tickets with any pending balance
     .map(t => {
       const daysSinceOperation = Math.floor((today.getTime() - t.operationDate.getTime()) / (1000 * 60 * 60 * 24));
       let agingBucket: '0-30' | '31-60' | '61-90' | '90+';
@@ -450,36 +450,35 @@ export interface MonthlyPaymentSummary {
   payments: FuturePayment[];
 }
 
-// Check if a payment is already collected (USD or transfer)
+// Check if a payment is already collected (transfer with no check due date)
 function isAlreadyCollected(op: Partial<OperationRow>): boolean {
-  const formaPago = (op.formaPago || '').toLowerCase();
-  const chequeTransf = (op.chequeTransf || '').toLowerCase();
+  const chequeTransf = (op.chequeTransf || '').toLowerCase().trim();
   
-  // If it's a transfer or USD payment, it's already collected
-  if (formaPago.includes('transfer') || formaPago.includes('usd') || formaPago.includes('dolar')) {
-    return true;
-  }
-  if (chequeTransf.includes('transfer') || chequeTransf.includes('usd') || chequeTransf.includes('dolar')) {
+  // Transfers without check due date are already collected
+  // trf, transfer, tranf are transfer codes
+  const isTransfer = chequeTransf === 'trf' || 
+                     chequeTransf === 'tranf' || 
+                     chequeTransf.includes('transfer');
+  
+  // If it's a transfer and has no check due date, it's already collected
+  if (isTransfer && !op.vtoCheque) {
     return true;
   }
   
   return false;
 }
 
-// Get future payments (only checks with due date in the future - excludes transfers and USD payments)
+// Get all pending check payments (with check due date - vtoCheque)
 export function getFuturePayments(): FuturePayment[] {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  
   const futurePayments: FuturePayment[] = [];
   
   for (const op of rawOperations) {
-    // Only include if:
-    // 1. Has a check due date (vtoCheque) in the future
+    // Include if:
+    // 1. Has a check due date (vtoCheque)
     // 2. Has an amount (importeUSD > 0)
-    // 3. Is NOT already collected (not a transfer or USD payment)
-    if (op.vtoCheque && op.vtoCheque > today && op.importeUSD && op.importeUSD > 0) {
-      // Skip already collected payments (transfers, USD)
+    // 3. Is NOT already collected (transfer without check date)
+    if (op.vtoCheque && op.importeUSD && op.importeUSD > 0) {
+      // Skip already collected payments
       if (isAlreadyCollected(op)) {
         continue;
       }
@@ -503,23 +502,20 @@ export function getFuturePayments(): FuturePayment[] {
   return futurePayments;
 }
 
-// Get projected payments grouped by month (only future check due dates - excludes already collected)
+// Get all check payments grouped by month (by check due date - vtoCheque)
 export function getPaymentsByMonth(): MonthlyPaymentSummary[] {
   const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 
                       'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
   
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  
   const monthlyMap = new Map<string, MonthlyPaymentSummary>();
   
   for (const op of rawOperations) {
-    // Only use vtoCheque (check due date) for projections - must be in the future
+    // Use vtoCheque (check due date) for projections
     const paymentDate = op.vtoCheque;
     
-    // Only include future check due dates with amount, excluding already collected payments
-    if (paymentDate && paymentDate > today && op.importeUSD && op.importeUSD > 0) {
-      // Skip already collected payments (transfers, USD)
+    // Include check payments with due date and amount
+    if (paymentDate && op.importeUSD && op.importeUSD > 0) {
+      // Skip already collected payments
       if (isAlreadyCollected(op)) {
         continue;
       }
