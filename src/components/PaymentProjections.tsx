@@ -18,6 +18,11 @@ import {
 } from '@/lib/realData';
 import { Ticket, ClientSummary } from '@/lib/types';
 import { formatCurrency, formatDate } from '@/lib/formatters';
+import { 
+  exportFuturePaymentsToPDF, 
+  exportMonthlyPaymentsToPDF, 
+  exportPendingBalancesToPDF 
+} from '@/lib/exportUtils';
 import { TicketCard } from '@/components/TicketCard';
 import { ClientSummaryCard } from '@/components/ClientSummaryCard';
 import {
@@ -37,7 +42,8 @@ import {
   FileText,
   Search,
   X,
-  User
+  User,
+  Download
 } from 'lucide-react';
 import {
   BarChart,
@@ -247,6 +253,54 @@ export function PaymentProjections() {
       }
     }
   };
+
+  // Export functions
+  const handleExportFuturePayments = () => {
+    const totalUSD = futurePayments.reduce((sum, p) => 
+      sum + (p.amountUSD > 0 ? p.amountUSD : p.amountARS / currentExchangeRate), 0);
+    
+    const exportData = futurePayments.map(p => ({
+      dueDate: p.dueDate,
+      clientName: p.clientName,
+      clientCode: p.clientCode,
+      ticketNumber: p.ticketNumber,
+      detail: p.detail,
+      amountUSD: p.amountUSD > 0 ? p.amountUSD : p.amountARS / currentExchangeRate,
+    }));
+    
+    exportFuturePaymentsToPDF(exportData, totalUSD);
+  };
+
+  const handleExportMonthlyPayments = () => {
+    const monthLabels = monthColumns.map(col => col.label);
+    
+    const exportData = clientMonthlyData.map(client => ({
+      clientCode: client.clientCode,
+      clientName: client.clientName,
+      monthlyAmounts: monthColumns.map(col => {
+        const amount = client.months.get(col.key) || { usd: 0, ars: 0 };
+        return {
+          month: col.label,
+          amount: amount.usd + (amount.ars / currentExchangeRate),
+        };
+      }),
+      total: client.totalUSD + (client.totalARS / currentExchangeRate),
+    }));
+
+    const colTotals = monthColumns.map(col => {
+      const amount = columnTotals.get(col.key) || { usd: 0, ars: 0 };
+      return amount.usd + (amount.ars / currentExchangeRate);
+    });
+
+    const grandTotal = grandTotalUSD + (grandTotalARS / currentExchangeRate);
+    
+    exportMonthlyPaymentsToPDF(exportData, monthLabels, grandTotal, colTotals, currentExchangeRate);
+  };
+
+  const handleExportPendingBalances = () => {
+    const totalUSD = pendingBalances.reduce((sum, p) => sum + p.totalPending, 0);
+    exportPendingBalancesToPDF(pendingBalances, totalUSD);
+  };
   
   return (
     <div className="space-y-6">
@@ -377,11 +431,17 @@ export function PaymentProjections() {
         {/* Future Payments Tab */}
         <TabsContent value="future" className="mt-4">
           <Card className="bg-card border-border card-shadow">
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-lg flex items-center gap-2">
                 <Calendar className="h-5 w-5 text-primary" />
                 Cheques por Fecha de Vencimiento ({futurePayments.length})
               </CardTitle>
+              {futurePayments.length > 0 && (
+                <Button variant="outline" size="sm" onClick={handleExportFuturePayments} className="gap-2">
+                  <Download className="h-4 w-4" />
+                  PDF
+                </Button>
+              )}
             </CardHeader>
             <CardContent>
               {futurePayments.length === 0 ? (
@@ -469,11 +529,15 @@ export function PaymentProjections() {
           {/* Monthly Totals Table by Client */}
           {clientMonthlyData.length > 0 && monthColumns.length > 0 && (
             <Card className="bg-card border-border card-shadow">
-              <CardHeader>
+              <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="text-lg flex items-center gap-2">
                   <Calendar className="h-5 w-5 text-primary" />
                   Cobros por Cliente y Mes
                 </CardTitle>
+                <Button variant="outline" size="sm" onClick={handleExportMonthlyPayments} className="gap-2">
+                  <Download className="h-4 w-4" />
+                  PDF (Apaisado)
+                </Button>
               </CardHeader>
               <CardContent className="p-0">
                 <div className="overflow-x-auto max-h-[400px] overflow-y-auto">
@@ -688,11 +752,17 @@ export function PaymentProjections() {
         {/* Pending Balances Tab */}
         <TabsContent value="pending" className="mt-4">
           <Card className="bg-card border-border card-shadow">
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-lg flex items-center gap-2">
                 <Users className="h-5 w-5 text-primary" />
                 Saldos Pendientes por Cliente
               </CardTitle>
+              {pendingBalances.length > 0 && (
+                <Button variant="outline" size="sm" onClick={handleExportPendingBalances} className="gap-2">
+                  <Download className="h-4 w-4" />
+                  PDF
+                </Button>
+              )}
             </CardHeader>
             <CardContent>
               {pendingBalances.length === 0 ? (

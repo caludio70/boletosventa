@@ -440,3 +440,246 @@ export function exportDebtAgingToPDF(data: { ticketNumber: string; clientName: s
 
   doc.save(`${filename}_${getDateString()}.pdf`);
 }
+
+// Interface for future payment export
+interface FuturePaymentExport {
+  dueDate: Date;
+  clientName: string;
+  clientCode: string;
+  ticketNumber: string;
+  detail: string;
+  amountUSD: number;
+}
+
+// Export Future Payments to PDF (portrait)
+export function exportFuturePaymentsToPDF(
+  data: FuturePaymentExport[],
+  totalUSD: number,
+  filename: string = 'pagos_futuros'
+) {
+  const doc = new jsPDF('p', 'mm', 'a4');
+
+  doc.setFontSize(16);
+  doc.setFont('helvetica', 'bold');
+  doc.text('AUTOBUS S.A. - Cheques por Vencimiento', 14, 15);
+
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  doc.text(`Generado: ${new Date().toLocaleDateString('es-AR')}`, 14, 22);
+  doc.text(`Total cheques: ${data.length}`, 14, 28);
+
+  const tableData = data.map(row => [
+    formatDate(row.dueDate),
+    row.clientName.substring(0, 30),
+    row.ticketNumber,
+    row.detail.substring(0, 20),
+    formatCurrency(row.amountUSD),
+  ]);
+
+  const totalsRow = [
+    'TOTAL',
+    `${data.length} cheques`,
+    '',
+    '',
+    formatCurrency(totalUSD),
+  ];
+
+  autoTable(doc, {
+    head: [['Vencimiento', 'Cliente', 'Boleto', 'Detalle', 'Importe USD']],
+    body: [...tableData, totalsRow],
+    startY: 34,
+    styles: {
+      fontSize: 8,
+      cellPadding: 2,
+    },
+    headStyles: {
+      fillColor: [51, 51, 51],
+      textColor: [255, 255, 255],
+      fontStyle: 'bold',
+    },
+    alternateRowStyles: {
+      fillColor: [248, 248, 248],
+    },
+    columnStyles: {
+      0: { cellWidth: 28 },
+      1: { cellWidth: 60 },
+      2: { cellWidth: 25, halign: 'center' },
+      3: { cellWidth: 40 },
+      4: { cellWidth: 30, halign: 'right' },
+    },
+    didParseCell: (data) => {
+      if (data.row.index === tableData.length) {
+        data.cell.styles.fillColor = [51, 51, 51];
+        data.cell.styles.textColor = [255, 255, 255];
+        data.cell.styles.fontStyle = 'bold';
+      }
+    },
+  });
+
+  doc.save(`${filename}_${getDateString()}.pdf`);
+}
+
+// Interface for monthly payment export
+interface MonthlyPaymentExport {
+  clientCode: string;
+  clientName: string;
+  monthlyAmounts: { month: string; amount: number }[];
+  total: number;
+}
+
+// Export Monthly Payments to PDF (landscape)
+export function exportMonthlyPaymentsToPDF(
+  data: MonthlyPaymentExport[],
+  months: string[],
+  grandTotal: number,
+  columnTotals: number[],
+  exchangeRate: number,
+  filename: string = 'cobros_por_mes'
+) {
+  const doc = new jsPDF('l', 'mm', 'a4'); // Landscape
+
+  doc.setFontSize(16);
+  doc.setFont('helvetica', 'bold');
+  doc.text('AUTOBUS S.A. - Cobros por Cliente y Mes', 14, 15);
+
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  doc.text(`Generado: ${new Date().toLocaleDateString('es-AR')}`, 14, 22);
+  doc.text(`TC BNA Vendedor: $${exchangeRate.toLocaleString('es-AR')}`, 14, 28);
+  doc.text(`Clientes: ${data.length}`, 100, 28);
+
+  const headers = ['Cliente', ...months, 'Total'];
+  
+  const tableData = data.map(row => {
+    const monthValues = months.map(month => {
+      const found = row.monthlyAmounts.find(m => m.month === month);
+      return found && found.amount > 0 ? formatCurrency(found.amount) : '—';
+    });
+    return [row.clientName.substring(0, 25), ...monthValues, formatCurrency(row.total)];
+  });
+
+  const totalsRow = [
+    'TOTALES',
+    ...columnTotals.map(t => formatCurrency(t)),
+    formatCurrency(grandTotal),
+  ];
+
+  // Calculate column widths dynamically
+  const clientColWidth = 50;
+  const totalColWidth = 28;
+  const availableWidth = 297 - 28 - clientColWidth - totalColWidth; // A4 landscape width minus margins
+  const monthColWidth = Math.min(25, availableWidth / months.length);
+
+  const columnStyles: any = {
+    0: { cellWidth: clientColWidth },
+  };
+  months.forEach((_, idx) => {
+    columnStyles[idx + 1] = { cellWidth: monthColWidth, halign: 'right' };
+  });
+  columnStyles[months.length + 1] = { cellWidth: totalColWidth, halign: 'right' };
+
+  autoTable(doc, {
+    head: [headers],
+    body: [...tableData, totalsRow],
+    startY: 34,
+    styles: {
+      fontSize: 7,
+      cellPadding: 1.5,
+    },
+    headStyles: {
+      fillColor: [51, 51, 51],
+      textColor: [255, 255, 255],
+      fontStyle: 'bold',
+      fontSize: 7,
+    },
+    alternateRowStyles: {
+      fillColor: [248, 248, 248],
+    },
+    columnStyles,
+    didParseCell: (data) => {
+      if (data.row.index === tableData.length) {
+        data.cell.styles.fillColor = [51, 51, 51];
+        data.cell.styles.textColor = [255, 255, 255];
+        data.cell.styles.fontStyle = 'bold';
+      }
+    },
+  });
+
+  doc.save(`${filename}_${getDateString()}.pdf`);
+}
+
+// Interface for pending balances export
+interface PendingBalanceExport {
+  clientCode: string;
+  clientName: string;
+  totalPending: number;
+  tickets: string[];
+}
+
+// Export Pending Balances to PDF (portrait)
+export function exportPendingBalancesToPDF(
+  data: PendingBalanceExport[],
+  totalUSD: number,
+  filename: string = 'saldos_pendientes'
+) {
+  const doc = new jsPDF('p', 'mm', 'a4');
+
+  doc.setFontSize(16);
+  doc.setFont('helvetica', 'bold');
+  doc.text('AUTOBUS S.A. - Saldos Pendientes por Cliente', 14, 15);
+
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  doc.text(`Generado: ${new Date().toLocaleDateString('es-AR')}`, 14, 22);
+  doc.text(`Total clientes: ${data.length}`, 14, 28);
+
+  const tableData = data.map(row => [
+    row.clientName.substring(0, 35),
+    row.clientCode,
+    row.tickets.length.toString(),
+    row.tickets.slice(0, 3).join(', ') + (row.tickets.length > 3 ? '...' : ''),
+    formatCurrency(row.totalPending),
+  ]);
+
+  const totalsRow = [
+    'TOTAL',
+    `${data.length} clientes`,
+    data.reduce((sum, r) => sum + r.tickets.length, 0).toString(),
+    '',
+    formatCurrency(totalUSD),
+  ];
+
+  autoTable(doc, {
+    head: [['Cliente', 'Código', 'Boletos', 'Números', 'Saldo USD']],
+    body: [...tableData, totalsRow],
+    startY: 34,
+    styles: {
+      fontSize: 8,
+      cellPadding: 2,
+    },
+    headStyles: {
+      fillColor: [51, 51, 51],
+      textColor: [255, 255, 255],
+      fontStyle: 'bold',
+    },
+    alternateRowStyles: {
+      fillColor: [248, 248, 248],
+    },
+    columnStyles: {
+      0: { cellWidth: 60 },
+      1: { cellWidth: 25, halign: 'center' },
+      2: { cellWidth: 20, halign: 'center' },
+      3: { cellWidth: 45 },
+      4: { cellWidth: 30, halign: 'right' },
+    },
+    didParseCell: (data) => {
+      if (data.row.index === tableData.length) {
+        data.cell.styles.fillColor = [51, 51, 51];
+        data.cell.styles.textColor = [255, 255, 255];
+        data.cell.styles.fontStyle = 'bold';
+      }
+    },
+  });
+
+  doc.save(`${filename}_${getDateString()}.pdf`);
+}
