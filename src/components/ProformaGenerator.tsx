@@ -120,7 +120,6 @@ export function ProformaGenerator() {
 
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
-    const pageHeight = doc.internal.pageSize.getHeight();
     
     // Cargar imágenes
     const loadImage = (src: string): Promise<HTMLImageElement> => {
@@ -140,142 +139,191 @@ export function ProformaGenerator() {
         loadImage('/logos/jose-viegas-firma.png')
       ]);
       
-      // Header - Logo Ugarte (izquierda) y Mercedes-Benz (derecha)
-      doc.addImage(ugarteImg, 'JPEG', 15, 8, 50, 15);
-      doc.addImage(mercedesImg, 'PNG', pageWidth - 70, 5, 55, 20);
+      // ========== HEADER ==========
+      // Logo Ugarte (izquierda)
+      doc.addImage(ugarteImg, 'JPEG', 15, 10, 55, 18);
+      // Logo Mercedes-Benz (derecha)
+      doc.addImage(mercedesImg, 'PNG', pageWidth - 75, 8, 60, 22);
       
-      // Fecha
+      // Línea horizontal bajo logos
+      doc.setDrawColor(0, 0, 0);
+      doc.setLineWidth(0.3);
+      doc.line(15, 32, pageWidth - 15, 32);
+      
+      // ========== DATOS EMPRESA Y FECHA ==========
+      // Fecha a la derecha
+      doc.setFont('times', 'normal');
       doc.setFontSize(10);
-      doc.setFont('helvetica', 'normal');
-      doc.text(`FECHA:`, pageWidth - 45, 30);
-      doc.text(`${new Date(fecha).toLocaleDateString('es-AR')}`, pageWidth - 15, 30, { align: 'right' });
+      doc.text('FECHA:', pageWidth - 50, 38);
+      doc.setFont('times', 'bold');
+      doc.text(new Date(fecha).toLocaleDateString('es-AR'), pageWidth - 15, 38, { align: 'right' });
       
-      // Línea separadora
-      doc.setLineWidth(0.5);
-      doc.line(15, 35, pageWidth - 15, 35);
-      
-      // Datos empresa
+      // Empresa
+      doc.setFont('times', 'bold');
       doc.setFontSize(11);
-      doc.setFont('helvetica', 'bold');
-      doc.text('AUTOBUS SA', 15, 42);
-      
+      doc.text('AUTOBUS SA', 15, 40);
+      doc.setFont('times', 'normal');
       doc.setFontSize(9);
-      doc.setFont('helvetica', 'normal');
-      doc.text('Concesionario Oficial Mercedes Benz', 15, 48);
-      doc.text('Av. Juan B. Alberdi 7334 - C.A.B.A.', 15, 53);
-      doc.text('CUIT: 30-63148185-6 IVA Responsable Inscripto', 15, 58);
+      doc.text('Concesionario Oficial Mercedes Benz', 15, 45);
+      doc.text('Av. Juan B. Alberdi 7334 - C.A.B.A.', 15, 50);
+      doc.text('cuit: 30-63148185-6 IVA Responsable Inscripto', 15, 55);
       
-      // Tipo documento
-      doc.setFont('helvetica', 'bold');
-      doc.text('Factura Proforma', pageWidth / 2, 42, { align: 'center' });
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(8);
-      doc.text('DOCUMENTO NO VALIDO COMO FACTURA', pageWidth / 2, 48, { align: 'center' });
+      // Tipo de documento (centro-derecha)
+      doc.setFont('times', 'italic');
+      doc.setFontSize(11);
+      doc.text('Factura Proforma', pageWidth / 2 + 20, 45);
+      doc.setFont('times', 'bold');
+      doc.setFontSize(9);
+      doc.text('DOCUMENTO NO VALIDO COMO FACTURA', pageWidth / 2 + 20, 51);
       
       // Línea separadora
-      doc.line(15, 62, pageWidth - 15, 62);
+      doc.setLineWidth(0.3);
+      doc.line(15, 60, pageWidth - 15, 60);
       
-      // Datos cliente
+      // ========== DATOS CLIENTE ==========
+      let yPos = 68;
+      doc.setFont('times', 'normal');
       doc.setFontSize(10);
-      doc.setFont('helvetica', 'normal');
-      doc.text(`Señor/es:`, 15, 70);
-      doc.setFont('helvetica', 'bold');
-      doc.text(`${cliente.senores}`, 40, 70);
-      doc.setFont('helvetica', 'normal');
-      doc.text(`CUIT:`, 15, 76);
-      doc.text(`${cliente.cuit}`, 40, 76);
-      doc.text(`Domicilio:`, 15, 82);
-      doc.text(`${cliente.domicilio}`, 40, 82);
+      
+      // Señor/es con subrayado
+      doc.text('Señor/es:', 15, yPos);
+      doc.setFont('times', 'bold');
+      doc.text(cliente.senores, 38, yPos);
+      doc.setLineWidth(0.1);
+      doc.line(38, yPos + 1, 38 + doc.getTextWidth(cliente.senores), yPos + 1);
+      
+      // CUIT con subrayado
+      yPos += 6;
+      doc.setFont('times', 'normal');
+      doc.text('CUIT:', 15, yPos);
+      doc.text(cliente.cuit, 38, yPos);
+      doc.line(38, yPos + 1, 38 + Math.max(doc.getTextWidth(cliente.cuit), 30), yPos + 1);
+      
+      // Domicilio con subrayado
+      yPos += 6;
+      doc.text('Domicilio:', 15, yPos);
+      doc.text(cliente.domicilio, 38, yPos);
+      doc.line(38, yPos + 1, 38 + Math.max(doc.getTextWidth(cliente.domicilio), 60), yPos + 1);
       
       // Línea separadora
-      doc.line(15, 87, pageWidth - 15, 87);
+      yPos += 8;
+      doc.setLineWidth(0.3);
+      doc.line(15, yPos, pageWidth - 15, yPos);
       
-      // Tabla de items
+      // ========== TABLA DE ITEMS ==========
+      yPos += 3;
+      
       const tableData = items.map(item => {
         const importeSinIva = item.cantidad * item.precioUnitario;
-        const importeConIva = importeSinIva * (1 + ivaRate / 100);
         return [
           item.cantidad.toString(),
           item.descripcion,
           formatCurrency(item.precioUnitario),
-          formatCurrency(importeSinIva),
-          formatCurrency(importeConIva)
+          formatCurrency(importeSinIva)
         ];
       });
 
       autoTable(doc, {
-        startY: 92,
-        head: [['Cantidad', 'Descripción', 'P.UNIT S./IVA', 'IMPORTE S./IVA', 'IMPORTE C./IVA']],
+        startY: yPos,
+        head: [['cantidad', 'descripción', 'P.UNIT S./IVA', 'IMPORTE S./IVA']],
         body: tableData,
+        theme: 'plain',
         headStyles: { 
-          fillColor: [255, 255, 200], 
+          fillColor: [255, 255, 255], 
           textColor: [0, 0, 0],
-          fontStyle: 'bold',
+          fontStyle: 'normal',
           fontSize: 9,
-          lineWidth: 0.1,
-          lineColor: [0, 0, 0]
+          font: 'times',
+          lineWidth: 0,
+          cellPadding: 2,
         },
         bodyStyles: { 
-          fontSize: 8,
-          lineWidth: 0.1,
-          lineColor: [0, 0, 0]
+          fontSize: 9,
+          font: 'times',
+          cellPadding: 3,
+          lineWidth: 0,
         },
         columnStyles: {
           0: { halign: 'center', cellWidth: 20 },
-          1: { cellWidth: 80 },
-          2: { halign: 'right', cellWidth: 25 },
-          3: { halign: 'right', cellWidth: 30 },
-          4: { halign: 'right', cellWidth: 30 }
+          1: { cellWidth: 90 },
+          2: { halign: 'right', cellWidth: 35 },
+          3: { halign: 'right', cellWidth: 35 }
         },
-        margin: { left: 15, right: 15 }
+        margin: { left: 15, right: 15 },
+        didDrawPage: function(data) {
+          // Línea bajo encabezado de tabla
+          if (data.cursor) {
+            doc.setLineWidth(0.1);
+            doc.line(15, data.settings.startY + 7, pageWidth - 15, data.settings.startY + 7);
+          }
+        }
       });
 
-      // Totales
-      const finalY = (doc as any).lastAutoTable.finalY + 10;
+      // ========== TOTALES ==========
+      const finalY = (doc as any).lastAutoTable.finalY + 15;
       
+      // Línea sobre totales
+      doc.setLineWidth(0.3);
+      doc.line(pageWidth / 2, finalY - 8, pageWidth - 15, finalY - 8);
+      
+      doc.setFont('times', 'normal');
       doc.setFontSize(10);
-      doc.text(`sub-total s/iva:`, pageWidth - 60, finalY);
-      doc.text(`${formatCurrency(calcularSubtotal())}`, pageWidth - 15, finalY, { align: 'right' });
       
-      doc.text(`iva`, pageWidth - 60, finalY + 6);
-      doc.text(`${ivaRate.toFixed(2)}%`, pageWidth - 45, finalY + 6);
-      doc.text(`${formatCurrency(calcularIVA())}`, pageWidth - 15, finalY + 6, { align: 'right' });
+      // Sub-total s/iva
+      doc.text('sub-total s/iva:', pageWidth - 75, finalY);
+      doc.text(formatCurrency(calcularSubtotal()), pageWidth - 15, finalY, { align: 'right' });
       
-      doc.setFont('helvetica', 'bold');
-      doc.text(`total`, pageWidth - 60, finalY + 12);
+      // IVA
+      doc.text('iva', pageWidth - 75, finalY + 6);
+      doc.text(`${ivaRate.toFixed(2)}%`, pageWidth - 55, finalY + 6);
+      doc.text(formatCurrency(calcularIVA()), pageWidth - 15, finalY + 6, { align: 'right' });
       
-      // Recuadro para total
+      // Total con recuadro
+      doc.setFont('times', 'bold');
+      doc.text('total', pageWidth - 75, finalY + 14);
+      
+      // Recuadro alrededor del total
       doc.setLineWidth(0.5);
-      doc.rect(pageWidth - 50, finalY + 8, 35, 6);
-      doc.text(`${formatCurrency(calcularTotal())}`, pageWidth - 15, finalY + 12, { align: 'right' });
+      doc.rect(pageWidth - 50, finalY + 10, 35, 7);
+      doc.text(formatCurrency(calcularTotal()), pageWidth - 15, finalY + 14, { align: 'right' });
       
-      // Monto en letras
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(9);
-      doc.setTextColor(0, 0, 150);
-      const currencyLabel = currency === 'USD' ? 'son Dólares' : 'son PESOS';
-      doc.text(currencyLabel, 15, finalY + 25);
+      // ========== MONTO EN LETRAS ==========
+      doc.setFont('times', 'normal');
+      doc.setFontSize(10);
+      doc.setTextColor(150, 0, 0); // Rojo oscuro como en la imagen
+      const currencyLabel = currency === 'USD' ? 'son DOLARES' : 'son PESOS';
+      doc.text(currencyLabel, 15, finalY + 28);
       doc.setTextColor(0, 0, 0);
       const montoEnLetras = numberToWords(calcularTotal(), currency);
-      doc.text(montoEnLetras.replace(/^son (Dólares|Pesos) /, ''), 15, finalY + 31);
+      doc.text(montoEnLetras.replace(/^son (Dólares|Pesos) /, ''), 15, finalY + 34);
       
-      // Forma de pago y plazo
+      // ========== FORMA DE PAGO Y PLAZO ==========
+      doc.setFontSize(10);
+      doc.setFont('times', 'normal');
+      
+      // Forma de pago con subrayado
+      doc.text('Forma de pago:', 15, finalY + 46);
+      doc.line(15, finalY + 47, 43, finalY + 47);
+      doc.setFont('times', 'bold');
+      doc.text(formaPago, 48, finalY + 46);
+      
+      // Plazo de entrega con subrayado
+      doc.setFont('times', 'normal');
+      doc.text('Plazo de entrega:', 15, finalY + 54);
+      doc.line(15, finalY + 55, 48, finalY + 55);
+      doc.setFont('times', 'bold');
+      doc.text(plazoEntrega, 53, finalY + 54);
+      
+      // ========== FIRMA (lado derecho) ==========
+      doc.addImage(firmaImg, 'PNG', pageWidth - 65, finalY + 35, 50, 32);
+      
+      // ========== PIE - LEYENDA ==========
+      doc.setFont('times', 'italic');
       doc.setFontSize(9);
-      doc.text(`Forma de pago:`, 15, finalY + 42);
-      doc.text(`${formaPago}`, 45, finalY + 42);
-      doc.text(`Plazo de entrega:`, 15, finalY + 48);
-      doc.text(`${plazoEntrega}`, 45, finalY + 48);
-      
-      // Firma en pie de página (lado derecho)
-      doc.addImage(firmaImg, 'PNG', pageWidth - 60, finalY + 35, 45, 30);
-      
-      // Pie - leyenda
-      doc.setFontSize(8);
-      doc.setFont('helvetica', 'italic');
       const leyenda = currency === 'USD' 
         ? 'Cotización Sujeta a modificaciones lista Precios MERCEDES BENZ y/o valor dólar.'
         : 'Cotización Sujeta a modificaciones lista Precios MERCEDES BENZ.';
-      doc.text(leyenda, 15, finalY + 70);
+      doc.text(leyenda, 15, finalY + 75);
       
       // Guardar PDF
       const fileName = `PROFORMA_${cliente.senores.replace(/\s+/g, '_').substring(0, 20)}_${fecha}.pdf`;
