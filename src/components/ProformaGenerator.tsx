@@ -328,7 +328,9 @@ export function ProformaGenerator() {
       doc.text(leyenda, 15, finalY + 75);
       
       // Guardar PDF
-      const fileName = `PROFORMA_${cliente.senores.replace(/\s+/g, '_').substring(0, 20)}_${fecha}.pdf`;
+      const fechaFormateada = new Date(fecha).toLocaleDateString('es-AR').replace(/\//g, '-');
+      const nombreCliente = cliente.senores.replace(/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑ\s]/g, '').replace(/\s+/g, '_');
+      const fileName = `${nombreCliente}_${fechaFormateada}.pdf`;
       doc.save(fileName);
       toast.success('PDF generado correctamente');
     } catch (error) {
