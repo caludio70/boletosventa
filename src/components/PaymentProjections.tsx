@@ -117,18 +117,23 @@ export function PaymentProjections() {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   
-  // Separate past and future months
+  // Separate past and future payments
   const futureMonths = monthlyPayments.filter(m => {
     const monthDate = new Date(m.year, m.monthNumber, 1);
     return monthDate >= new Date(today.getFullYear(), today.getMonth(), 1);
   });
   
-  // Total future payments
-  const totalFutureUSD = futurePayments.reduce((sum, p) => sum + p.amountUSD, 0);
+  const pastMonths = monthlyPayments.filter(m => {
+    const monthDate = new Date(m.year, m.monthNumber, 1);
+    return monthDate < new Date(today.getFullYear(), today.getMonth(), 1);
+  });
+  
+  // Total all check payments (future and past)
+  const totalAllCheckPaymentsUSD = futurePayments.reduce((sum, p) => sum + p.amountUSD, 0);
   const totalPendingUSD = pendingBalances.reduce((sum, p) => sum + p.totalPending, 0);
   
-  // Chart data for monthly payments
-  const chartData = futureMonths.map(m => ({
+  // Chart data for all monthly payments
+  const chartData = monthlyPayments.map(m => ({
     name: `${m.month.substring(0, 3)} ${m.year}`,
     total: m.totalUSD,
     count: m.paymentCount,
@@ -274,9 +279,9 @@ export function PaymentProjections() {
                 <Clock className="h-6 w-6 text-primary" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Cobros Futuros</p>
-                <p className="text-2xl font-bold">{formatCurrency(totalFutureUSD)}</p>
-                <p className="text-xs text-muted-foreground">{futurePayments.length} cheques pendientes</p>
+                <p className="text-sm text-muted-foreground">Total Cheques</p>
+                <p className="text-2xl font-bold">{formatCurrency(totalAllCheckPaymentsUSD)}</p>
+                <p className="text-xs text-muted-foreground">{futurePayments.length} cheques por vencimiento</p>
               </div>
             </div>
           </CardContent>
@@ -304,12 +309,10 @@ export function PaymentProjections() {
                 <TrendingUp className="h-6 w-6 text-success" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Próximo Mes</p>
-                <p className="text-2xl font-bold">
-                  {futureMonths.length > 0 ? formatCurrency(futureMonths[0].totalUSD) : formatCurrency(0)}
-                </p>
+                <p className="text-sm text-muted-foreground">Meses con Cheques</p>
+                <p className="text-2xl font-bold">{monthlyPayments.length}</p>
                 <p className="text-xs text-muted-foreground">
-                  {futureMonths.length > 0 ? `${futureMonths[0].month} ${futureMonths[0].year}` : 'Sin datos'}
+                  {pastMonths.length} vencidos, {futureMonths.length} futuros
                 </p>
               </div>
             </div>
@@ -339,13 +342,13 @@ export function PaymentProjections() {
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
                 <Calendar className="h-5 w-5 text-primary" />
-                Cheques y Pagos Pendientes de Cobro
+                Cheques por Fecha de Vencimiento ({futurePayments.length})
               </CardTitle>
             </CardHeader>
             <CardContent>
               {futurePayments.length === 0 ? (
                 <p className="text-center text-muted-foreground py-8">
-                  No hay pagos futuros programados
+                  No hay cheques con fecha de vencimiento
                 </p>
               ) : (
                 <div className="overflow-x-auto">
@@ -362,17 +365,23 @@ export function PaymentProjections() {
                     <TableBody>
                       {futurePayments.map((payment, idx) => {
                         const daysUntil = Math.ceil((payment.dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+                        const isOverdue = daysUntil < 0;
                         return (
                           <TableRow key={idx} className="even:bg-table-stripe">
                             <TableCell>
                               <div className="flex items-center gap-2">
                                 <span>{formatDate(payment.dueDate)}</span>
-                                {daysUntil <= 7 && (
+                                {isOverdue && (
+                                  <Badge variant="destructive" className="text-xs">
+                                    Vencido
+                                  </Badge>
+                                )}
+                                {!isOverdue && daysUntil <= 7 && (
                                   <Badge variant="destructive" className="text-xs">
                                     {daysUntil === 0 ? 'Hoy' : `${daysUntil}d`}
                                   </Badge>
                                 )}
-                                {daysUntil > 7 && daysUntil <= 30 && (
+                                {!isOverdue && daysUntil > 7 && daysUntil <= 30 && (
                                   <Badge variant="outline" className="text-xs border-warning text-warning">
                                     {daysUntil}d
                                   </Badge>
