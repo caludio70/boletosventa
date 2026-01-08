@@ -62,98 +62,44 @@ export default function Index() {
         
         <main className="container py-6">
           <div className="max-w-6xl mx-auto space-y-6">
-            {/* Navigation */}
+            {/* Navigation Tabs */}
             <div className="flex flex-col gap-3">
-              <div className="grid grid-cols-4 sm:grid-cols-4 md:grid-cols-8 gap-1.5">
-                <button
-                  onClick={() => setActiveView('search')}
-                  className={`flex flex-col items-center gap-1 px-2 py-2 rounded text-xs font-medium transition-colors ${
-                    activeView === 'search' 
-                      ? 'bg-primary text-primary-foreground' 
-                      : 'bg-muted text-muted-foreground hover:bg-accent hover:text-accent-foreground'
-                  }`}
-                >
-                  <FileText className="w-4 h-4" />
-                  <span className="text-center leading-tight">Buscar</span>
-                </button>
-                <button
-                  onClick={() => setActiveView('totals')}
-                  className={`flex flex-col items-center gap-1 px-2 py-2 rounded text-xs font-medium transition-colors ${
-                    activeView === 'totals' 
-                      ? 'bg-primary text-primary-foreground' 
-                      : 'bg-muted text-muted-foreground hover:bg-accent hover:text-accent-foreground'
-                  }`}
-                >
-                  <Table className="w-4 h-4" />
-                  <span className="text-center leading-tight">Boletos</span>
-                </button>
-                <button
-                  onClick={() => setActiveView('projections')}
-                  className={`flex flex-col items-center gap-1 px-2 py-2 rounded text-xs font-medium transition-colors ${
-                    activeView === 'projections' 
-                      ? 'bg-primary text-primary-foreground' 
-                      : 'bg-muted text-muted-foreground hover:bg-accent hover:text-accent-foreground'
-                  }`}
-                >
-                  <Calendar className="w-4 h-4" />
-                  <span className="text-center leading-tight">Proyecc.</span>
-                </button>
-                <button
-                  onClick={() => setActiveView('aging')}
-                  className={`flex flex-col items-center gap-1 px-2 py-2 rounded text-xs font-medium transition-colors ${
-                    activeView === 'aging' 
-                      ? 'bg-primary text-primary-foreground' 
-                      : 'bg-muted text-muted-foreground hover:bg-accent hover:text-accent-foreground'
-                  }`}
-                >
-                  <AlertTriangle className="w-4 h-4" />
-                  <span className="text-center leading-tight">Aging</span>
-                </button>
-                <button
-                  onClick={() => setActiveView('refinancing')}
-                  className={`flex flex-col items-center gap-1 px-2 py-2 rounded text-xs font-medium transition-colors ${
-                    activeView === 'refinancing' 
-                      ? 'bg-primary text-primary-foreground' 
-                      : 'bg-muted text-muted-foreground hover:bg-accent hover:text-accent-foreground'
-                  }`}
-                >
-                  <Calculator className="w-4 h-4" />
-                  <span className="text-center leading-tight">Refinanc.</span>
-                </button>
-                <button
-                  onClick={() => setActiveView('interests')}
-                  className={`flex flex-col items-center gap-1 px-2 py-2 rounded text-xs font-medium transition-colors ${
-                    activeView === 'interests' 
-                      ? 'bg-primary text-primary-foreground' 
-                      : 'bg-muted text-muted-foreground hover:bg-accent hover:text-accent-foreground'
-                  }`}
-                >
-                  <Percent className="w-4 h-4" />
-                  <span className="text-center leading-tight">ARCA</span>
-                </button>
-                <button
-                  onClick={() => setActiveView('inflation')}
-                  className={`flex flex-col items-center gap-1 px-2 py-2 rounded text-xs font-medium transition-colors ${
-                    activeView === 'inflation' 
-                      ? 'bg-primary text-primary-foreground' 
-                      : 'bg-muted text-muted-foreground hover:bg-accent hover:text-accent-foreground'
-                  }`}
-                >
-                  <TrendingUp className="w-4 h-4" />
-                  <span className="text-center leading-tight">Inflación</span>
-                </button>
-                <button
-                  onClick={() => setActiveView('proforma')}
-                  className={`flex flex-col items-center gap-1 px-2 py-2 rounded text-xs font-medium transition-colors ${
-                    activeView === 'proforma' 
-                      ? 'bg-primary text-primary-foreground' 
-                      : 'bg-muted text-muted-foreground hover:bg-accent hover:text-accent-foreground'
-                  }`}
-                >
-                  <FilePlus className="w-4 h-4" />
-                  <span className="text-center leading-tight">Proforma</span>
-                </button>
-              </div>
+              <Tabs value={activeView} onValueChange={(val) => setActiveView(val as typeof activeView)} className="w-full">
+                <TabsList className="flex flex-wrap h-auto gap-1 p-1 bg-muted/50">
+                  <TabsTrigger value="search" className="flex items-center gap-1.5 px-3 py-1.5 text-xs">
+                    <FileText className="w-3.5 h-3.5" />
+                    Buscar Operación
+                  </TabsTrigger>
+                  <TabsTrigger value="totals" className="flex items-center gap-1.5 px-3 py-1.5 text-xs">
+                    <Table className="w-3.5 h-3.5" />
+                    Total por Boleto
+                  </TabsTrigger>
+                  <TabsTrigger value="projections" className="flex items-center gap-1.5 px-3 py-1.5 text-xs">
+                    <Calendar className="w-3.5 h-3.5" />
+                    Proyecciones
+                  </TabsTrigger>
+                  <TabsTrigger value="aging" className="flex items-center gap-1.5 px-3 py-1.5 text-xs">
+                    <AlertTriangle className="w-3.5 h-3.5" />
+                    Aging Deuda
+                  </TabsTrigger>
+                  <TabsTrigger value="refinancing" className="flex items-center gap-1.5 px-3 py-1.5 text-xs">
+                    <Calculator className="w-3.5 h-3.5" />
+                    Refinanciación
+                  </TabsTrigger>
+                  <TabsTrigger value="interests" className="flex items-center gap-1.5 px-3 py-1.5 text-xs">
+                    <Percent className="w-3.5 h-3.5" />
+                    Interés ARCA
+                  </TabsTrigger>
+                  <TabsTrigger value="inflation" className="flex items-center gap-1.5 px-3 py-1.5 text-xs">
+                    <TrendingUp className="w-3.5 h-3.5" />
+                    Inflación
+                  </TabsTrigger>
+                  <TabsTrigger value="proforma" className="flex items-center gap-1.5 px-3 py-1.5 text-xs">
+                    <FilePlus className="w-3.5 h-3.5" />
+                    Proforma
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
 
               <div className="flex items-center gap-2 justify-end">
                 <PDFUploader />
