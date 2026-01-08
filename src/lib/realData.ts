@@ -475,9 +475,10 @@ export function getFuturePayments(): FuturePayment[] {
   for (const op of rawOperations) {
     // Include if:
     // 1. Has a check due date (vtoCheque)
-    // 2. Has an amount (importeUSD > 0)
+    // 2. Has an amount (ARS or USD)
     // 3. Is NOT already collected (transfer without check date)
-    if (op.vtoCheque && op.importeUSD && op.importeUSD > 0) {
+    const hasAmount = (op.importeUSD || 0) > 0 || (op.importeARS || 0) > 0;
+    if (op.vtoCheque && hasAmount) {
       // Skip already collected payments
       if (isAlreadyCollected(op)) {
         continue;
@@ -513,8 +514,9 @@ export function getPaymentsByMonth(): MonthlyPaymentSummary[] {
     // Use vtoCheque (check due date) for projections
     const paymentDate = op.vtoCheque;
     
-    // Include check payments with due date and amount
-    if (paymentDate && op.importeUSD && op.importeUSD > 0) {
+    // Include check payments with due date and amount (ARS or USD)
+    const hasAmount = (op.importeUSD || 0) > 0 || (op.importeARS || 0) > 0;
+    if (paymentDate && hasAmount) {
       // Skip already collected payments
       if (isAlreadyCollected(op)) {
         continue;
