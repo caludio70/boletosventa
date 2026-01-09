@@ -65,43 +65,43 @@ export default function Index() {
             {/* Navigation Tabs */}
             <div className="flex flex-col gap-3">
               <Tabs value={activeView} onValueChange={(val) => setActiveView(val as typeof activeView)} className="w-full">
-                <TabsList className="flex flex-wrap h-auto gap-1 p-1 bg-muted/50">
-                  <TabsTrigger value="search" className="flex items-center gap-1.5 px-3 py-1.5 text-xs">
+                <TabsList className="grid w-full grid-cols-2 gap-1 p-1 h-auto bg-muted/50 sm:grid-cols-4 xl:grid-cols-8">
+                  <TabsTrigger value="search" className="w-full justify-start gap-1.5 px-3 py-1.5 text-xs sm:justify-center">
                     <FileText className="w-3.5 h-3.5" />
                     Buscar Operación
                   </TabsTrigger>
-                  <TabsTrigger value="totals" className="flex items-center gap-1.5 px-3 py-1.5 text-xs">
+                  <TabsTrigger value="totals" className="w-full justify-start gap-1.5 px-3 py-1.5 text-xs sm:justify-center">
                     <Table className="w-3.5 h-3.5" />
                     Total por Boleto
                   </TabsTrigger>
-                  <TabsTrigger value="projections" className="flex items-center gap-1.5 px-3 py-1.5 text-xs">
+                  <TabsTrigger value="projections" className="w-full justify-start gap-1.5 px-3 py-1.5 text-xs sm:justify-center">
                     <Calendar className="w-3.5 h-3.5" />
                     Proyecciones
                   </TabsTrigger>
-                  <TabsTrigger value="aging" className="flex items-center gap-1.5 px-3 py-1.5 text-xs">
+                  <TabsTrigger value="aging" className="w-full justify-start gap-1.5 px-3 py-1.5 text-xs sm:justify-center">
                     <AlertTriangle className="w-3.5 h-3.5" />
                     Aging Deuda
                   </TabsTrigger>
-                  <TabsTrigger value="refinancing" className="flex items-center gap-1.5 px-3 py-1.5 text-xs">
+                  <TabsTrigger value="refinancing" className="w-full justify-start gap-1.5 px-3 py-1.5 text-xs sm:justify-center">
                     <Calculator className="w-3.5 h-3.5" />
                     Refinanciación
                   </TabsTrigger>
-                  <TabsTrigger value="interests" className="flex items-center gap-1.5 px-3 py-1.5 text-xs">
+                  <TabsTrigger value="interests" className="w-full justify-start gap-1.5 px-3 py-1.5 text-xs sm:justify-center">
                     <Percent className="w-3.5 h-3.5" />
                     Interés ARCA
                   </TabsTrigger>
-                  <TabsTrigger value="inflation" className="flex items-center gap-1.5 px-3 py-1.5 text-xs">
+                  <TabsTrigger value="inflation" className="w-full justify-start gap-1.5 px-3 py-1.5 text-xs sm:justify-center">
                     <TrendingUp className="w-3.5 h-3.5" />
                     Inflación
                   </TabsTrigger>
-                  <TabsTrigger value="proforma" className="flex items-center gap-1.5 px-3 py-1.5 text-xs">
+                  <TabsTrigger value="proforma" className="w-full justify-start gap-1.5 px-3 py-1.5 text-xs sm:justify-center">
                     <FilePlus className="w-3.5 h-3.5" />
                     Proforma
                   </TabsTrigger>
                 </TabsList>
               </Tabs>
 
-              <div className="flex items-center gap-2 justify-end">
+              <div className="flex flex-wrap items-center justify-end gap-2">
                 <PDFUploader />
                 <ImportExcel onImport={handleImport} isLoading={isSaving} />
               </div>
