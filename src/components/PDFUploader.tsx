@@ -6,9 +6,11 @@ import { toast } from 'sonner';
 
 interface PDFUploaderProps {
   onUploadComplete?: () => void;
+  /** Oculta el texto de ayuda para usarlo en barras de acciones compactas */
+  compact?: boolean;
 }
 
-export function PDFUploader({ onUploadComplete }: PDFUploaderProps) {
+export function PDFUploader({ onUploadComplete, compact = false }: PDFUploaderProps) {
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -78,9 +80,11 @@ export function PDFUploader({ onUploadComplete }: PDFUploaderProps) {
           </>
         )}
       </Button>
-      <p className="text-xs text-muted-foreground mt-1">
-        Nombrar archivos: NroBoleto_... (ej: 22302_cliente.pdf)
-      </p>
+      {!compact && (
+        <p className="text-xs text-muted-foreground mt-1">
+          Nombrar archivos: NroBoleto_... (ej: 22302_cliente.pdf)
+        </p>
+      )}
     </div>
   );
 }

@@ -7,9 +7,11 @@ import { OperationRow } from '@/lib/types';
 interface ImportExcelProps {
   onImport: (data: Partial<OperationRow>[]) => void | Promise<void>;
   isLoading?: boolean;
+  /** UI compacta: muestra solo el botón (ideal para la barra superior) */
+  compact?: boolean;
 }
 
-export function ImportExcel({ onImport, isLoading: externalLoading }: ImportExcelProps) {
+export function ImportExcel({ onImport, isLoading: externalLoading, compact = false }: ImportExcelProps) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -70,6 +72,41 @@ export function ImportExcel({ onImport, isLoading: externalLoading }: ImportExce
     fileInputRef.current?.click();
   };
 
+  if (compact) {
+    return (
+      <div>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".xlsx,.xls"
+          onChange={handleFileChange}
+          className="hidden"
+        />
+
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleClick}
+          disabled={isProcessing || externalLoading}
+          className="gap-2"
+          title="Importar archivo Excel (.xlsx/.xls)"
+        >
+          {isProcessing || externalLoading ? (
+            <>
+              <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+              {externalLoading ? 'Guardando...' : 'Importando...'}
+            </>
+          ) : (
+            <>
+              <Upload className="w-4 h-4" />
+              Importar Excel
+            </>
+          )}
+        </Button>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-3">
       <input
@@ -79,7 +116,7 @@ export function ImportExcel({ onImport, isLoading: externalLoading }: ImportExce
         onChange={handleFileChange}
         className="hidden"
       />
-      
+
       <Button
         variant="outline"
         size="sm"

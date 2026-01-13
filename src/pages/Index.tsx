@@ -102,8 +102,8 @@ export default function Index() {
               </Tabs>
 
               <div className="flex flex-wrap items-center justify-end gap-2">
-                <PDFUploader />
-                <ImportExcel onImport={handleImport} isLoading={isSaving} />
+                <PDFUploader compact />
+                <ImportExcel onImport={handleImport} isLoading={isSaving} compact />
               </div>
             </div>
 
