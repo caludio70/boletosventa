@@ -148,7 +148,12 @@ export function PurchaseRequestForm() {
       `💰 SALDO FINAL: U$S ${formatCurrency(finalBalance)}\n` +
       `📋 Revisar y Autorizar aquí: ${window.location.href}`;
     
-    return `https://api.whatsapp.com/send?text=${encodeURIComponent(message)}`;
+    const encoded = encodeURIComponent(message);
+    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+    // Some networks/extensions block api.whatsapp.com; wa.me is usually more reliable.
+    // On mobile, try the deep link first.
+    return isMobile ? `whatsapp://send?text=${encoded}` : `https://wa.me/?text=${encoded}`;
   };
 
   const handleExportPDF = () => {
