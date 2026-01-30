@@ -135,21 +135,20 @@ export function PurchaseRequestForm() {
     ));
   };
 
-  const handleWhatsAppSend = () => {
+  const generateWhatsAppUrl = () => {
     const additionalsDetail = additionals.map(a => `${a.concept}: U$S ${a.amount}`).join(' | ') || 'Sin adicionales';
     const usedDetail = usedUnits.map(u => `${u.brand} ${u.model} ${u.year} (${u.domain})`).join(' | ') || 'Sin usados';
     
-    const message = encodeURIComponent(
+    const message = 
       `🔔 NUEVA SOLICITUD DE COMPRA N°: ${requestNumber}\n` +
       `👤 Cliente: ${buyer.name}\n` +
       `🚌 Unidad: ${unit.brand} ${unit.model}\n` +
       `➕ ADICIONALES: ${additionalsDetail}\n` +
       `🔄 USADOS: ${usedDetail}\n` +
       `💰 SALDO FINAL: U$S ${formatCurrency(finalBalance)}\n` +
-      `📋 Revisar y Autorizar aquí: ${window.location.href}`
-    );
+      `📋 Revisar y Autorizar aquí: ${window.location.href}`;
     
-    window.open(`https://wa.me/?text=${message}`, '_blank');
+    return `https://api.whatsapp.com/send?text=${encodeURIComponent(message)}`;
   };
 
   const handleExportPDF = () => {
@@ -672,9 +671,11 @@ export function PurchaseRequestForm() {
           <FileText className="w-4 h-4 mr-2" />
           Exportar PDF
         </Button>
-        <Button onClick={handleWhatsAppSend}>
-          <Send className="w-4 h-4 mr-2" />
-          Enviar para Aprobación
+        <Button asChild>
+          <a href={generateWhatsAppUrl()} target="_blank" rel="noopener noreferrer">
+            <Send className="w-4 h-4 mr-2" />
+            Enviar para Aprobación
+          </a>
         </Button>
       </div>
     </div>
