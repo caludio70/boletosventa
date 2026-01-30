@@ -11,19 +11,20 @@ import { InterestCalculator } from '@/components/InterestCalculator';
 import { InflationCalculator } from '@/components/InflationCalculator';
 import { ProformaGenerator } from '@/components/ProformaGenerator';
 import { FrenchAmortizationSimulator } from '@/components/FrenchAmortizationSimulator';
+import { PurchaseRequestForm } from '@/components/PurchaseRequestForm';
 import { EmptyState } from '@/components/EmptyState';
 import { ImportExcel } from '@/components/ImportExcel';
 import { PDFUploader } from '@/components/PDFUploader';
 import { searchTicketsOrClient, getClientSummary, getTotalsByTicket } from '@/lib/realData';
 import { Ticket, ClientSummary, OperationRow } from '@/lib/types';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { FileText, LayoutList, Table, Calendar, Loader2, AlertTriangle, Calculator, Percent, TrendingUp, FilePlus, Landmark } from 'lucide-react';
+import { FileText, LayoutList, Table, Calendar, Loader2, AlertTriangle, Calculator, Percent, TrendingUp, FilePlus, Landmark, ShoppingCart } from 'lucide-react';
 import { useOperationsData } from '@/hooks/useOperationsData';
 import { RefinancingProvider } from '@/contexts/RefinancingContext';
 
 export default function Index() {
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeView, setActiveView] = useState<'search' | 'totals' | 'projections' | 'aging' | 'refinancing' | 'interests' | 'inflation' | 'proforma' | 'french'>('totals');
+  const [activeView, setActiveView] = useState<'search' | 'totals' | 'projections' | 'aging' | 'refinancing' | 'interests' | 'inflation' | 'proforma' | 'french' | 'purchase'>('totals');
   const [searchResult, setSearchResult] = useState<{
     type: 'ticket' | 'client' | 'not_found' | 'initial';
     tickets: Ticket[];
@@ -67,7 +68,11 @@ export default function Index() {
             {/* Navigation Tabs */}
             <div className="flex flex-col gap-3">
               <Tabs value={activeView} onValueChange={(val) => setActiveView(val as typeof activeView)} className="w-full">
-                <TabsList className="grid w-full grid-cols-3 gap-1 p-1 h-auto bg-muted/50 sm:grid-cols-3 lg:grid-cols-9">
+                <TabsList className="grid w-full grid-cols-3 gap-1 p-1 h-auto bg-muted/50 sm:grid-cols-5 lg:grid-cols-10">
+                  <TabsTrigger value="purchase" className="w-full justify-start gap-1.5 px-3 py-1.5 text-xs sm:justify-center">
+                    <ShoppingCart className="w-3.5 h-3.5" />
+                    Nuevo Boleto
+                  </TabsTrigger>
                   <TabsTrigger value="search" className="w-full justify-start gap-1.5 px-3 py-1.5 text-xs sm:justify-center">
                     <FileText className="w-3.5 h-3.5" />
                     Buscar Operación
@@ -209,6 +214,10 @@ export default function Index() {
 
             {activeView === 'french' && (
               <FrenchAmortizationSimulator />
+            )}
+
+            {activeView === 'purchase' && (
+              <PurchaseRequestForm />
             )}
           </div>
         </main>
