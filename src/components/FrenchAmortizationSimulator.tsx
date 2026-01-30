@@ -232,7 +232,7 @@ export function FrenchAmortizationSimulator() {
     XLSX.writeFile(wb, `sistema_frances${clientStr}_${dateStr}.xlsx`);
   };
 
-  const handleExportPDF = () => {
+  const handleExportPDF = async () => {
     if (amortizationTable.length === 0 || !totals) return;
 
     const doc = new jsPDF('p', 'mm', 'a4');
@@ -244,19 +244,37 @@ export function FrenchAmortizationSimulator() {
     doc.setFillColor(33, 37, 41);
     doc.rect(0, 0, pageWidth, 38, 'F');
 
-    // Logo / Título empresa
+    // Cargar y añadir logo
+    try {
+      const logoImg = new Image();
+      logoImg.crossOrigin = 'anonymous';
+      await new Promise<void>((resolve, reject) => {
+        logoImg.onload = () => resolve();
+        logoImg.onerror = () => reject();
+        logoImg.src = '/logos/ugarte-logo.png';
+      });
+      doc.addImage(logoImg, 'PNG', margin, 6, 28, 26);
+    } catch {
+      // Si no carga el logo, mostrar texto alternativo
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(18);
+      doc.setFont('helvetica', 'bold');
+      doc.text('UGARTE', margin, 22);
+    }
+
+    // Título empresa al lado del logo
     doc.setTextColor(255, 255, 255);
-    doc.setFontSize(18);
+    doc.setFontSize(16);
     doc.setFont('helvetica', 'bold');
-    doc.text('AUTOBUS S.A.', margin, 16);
+    doc.text('AUTOBUS S.A.', margin + 34, 16);
 
     doc.setFontSize(11);
     doc.setFont('helvetica', 'normal');
-    doc.text('Simulación de Préstamo — Sistema Francés', margin, 24);
+    doc.text('Simulación de Préstamo — Sistema Francés', margin + 34, 24);
 
     // Fecha
     doc.setFontSize(9);
-    doc.text(`Generado: ${new Date().toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' })}`, margin, 32);
+    doc.text(`Generado: ${new Date().toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' })}`, margin + 34, 32);
 
     // === DATOS DEL CLIENTE ===
     let yPos = 48;
