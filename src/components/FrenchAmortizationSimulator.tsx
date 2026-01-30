@@ -5,9 +5,11 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Calculator, Download, FileSpreadsheet } from 'lucide-react';
+import { Calculator, FileSpreadsheet, FileText } from 'lucide-react';
 import { formatCurrency } from '@/lib/formatters';
 import * as XLSX from 'xlsx';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 type Periodicity = 'monthly' | 'bimonthly' | 'quarterly' | 'semiannual' | 'annual';
 
@@ -229,6 +231,236 @@ export function FrenchAmortizationSimulator() {
     const clientStr = params.clientName ? `_${params.clientName.replace(/\s+/g, '_').substring(0, 20)}` : '';
     XLSX.writeFile(wb, `sistema_frances${clientStr}_${dateStr}.xlsx`);
   };
+
+  const handleExportPDF = () => {
+    if (amortizationTable.length === 0 || !totals) return;
+
+    const doc = new jsPDF('p', 'mm', 'a4');
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const margin = 14;
+
+    // === ENCABEZADO PRINCIPAL ===
+    // Fondo del header
+    doc.setFillColor(33, 37, 41);
+    doc.rect(0, 0, pageWidth, 38, 'F');
+
+    // Logo / Título empresa
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(18);
+    doc.setFont('helvetica', 'bold');
+    doc.text('AUTOBUS S.A.', margin, 16);
+
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'normal');
+    doc.text('Simulación de Préstamo — Sistema Francés', margin, 24);
+
+    // Fecha
+    doc.setFontSize(9);
+    doc.text(`Generado: ${new Date().toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' })}`, margin, 32);
+
+    // === DATOS DEL CLIENTE ===
+    let yPos = 48;
+    doc.setTextColor(33, 37, 41);
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Datos del Cliente', margin, yPos);
+
+    doc.setDrawColor(200, 200, 200);
+    doc.line(margin, yPos + 2, pageWidth - margin, yPos + 2);
+
+    yPos += 10;
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Cliente: ${params.clientName || 'N/A'}`, margin, yPos);
+    doc.text(`CUIT: ${params.clientCuit || 'N/A'}`, pageWidth / 2, yPos);
+
+    // === PARÁMETROS DEL PRÉSTAMO ===
+    yPos += 14;
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Parámetros del Préstamo', margin, yPos);
+    doc.line(margin, yPos + 2, pageWidth - margin, yPos + 2);
+
+    yPos += 10;
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    
+    const col1X = margin;
+    const col2X = margin + 60;
+    const col3X = margin + 120;
+    
+    doc.text(`Capital: $${formatNumber(params.capital)}`, col1X, yPos);
+    doc.text(`Cuotas: ${params.periods}`, col2X, yPos);
+    doc.text(`Periodicidad: ${PERIODICITY_CONFIG[params.periodicity].label}`, col3X, yPos);
+
+    // === CUADRO DE TASAS ===
+    yPos += 14;
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Tasas Aplicadas', margin, yPos);
+    doc.line(margin, yPos + 2, pageWidth - margin, yPos + 2);
+
+    yPos += 6;
+    
+    // Cuadro con fondo
+    const boxWidth = (pageWidth - margin * 2 - 15) / 4;
+    const boxHeight = 18;
+    const boxes = [
+      { label: 'TNA', value: `${formatNumber(rates.tna)}%`, sublabel: 'Tasa Nominal Anual' },
+      { label: 'TEM', value: `${formatNumber(rates.tem)}%`, sublabel: 'Tasa Efectiva Mensual' },
+      { label: 'TEA', value: `${formatNumber(rates.tea)}%`, sublabel: 'Tasa Efectiva Anual' },
+      { label: 'Periódica', value: `${formatNumber(rates.periodicRate)}%`, sublabel: PERIODICITY_CONFIG[params.periodicity].label },
+    ];
+
+    boxes.forEach((box, idx) => {
+      const boxX = margin + idx * (boxWidth + 5);
+      
+      // Fondo del box
+      doc.setFillColor(248, 249, 250);
+      doc.setDrawColor(220, 220, 220);
+      doc.roundedRect(boxX, yPos, boxWidth, boxHeight, 2, 2, 'FD');
+      
+      // Label
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(108, 117, 125);
+      doc.text(box.label, boxX + boxWidth / 2, yPos + 5, { align: 'center' });
+      
+      // Value
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(0, 123, 255);
+      doc.text(box.value, boxX + boxWidth / 2, yPos + 12, { align: 'center' });
+      
+      // Sublabel
+      doc.setFontSize(6);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(108, 117, 125);
+      doc.text(box.sublabel, boxX + boxWidth / 2, yPos + 16, { align: 'center' });
+    });
+
+    doc.setTextColor(33, 37, 41);
+
+    // === RESUMEN DEL PRÉSTAMO ===
+    yPos += boxHeight + 10;
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Resumen del Préstamo', margin, yPos);
+    doc.line(margin, yPos + 2, pageWidth - margin, yPos + 2);
+
+    yPos += 8;
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+
+    const summaryData = [
+      ['Capital Financiado', `$${formatNumber(params.capital)}`],
+      ['Total Intereses', `$${formatNumber(totals.totalInterest)}`],
+      ...(params.includeIva ? [['Total IVA (' + params.ivaRate + '%)', `$${formatNumber(totals.totalIva)}`]] : []),
+      ['Total a Pagar', `$${formatNumber(totals.totalWithIva)}`],
+      ['Cuota Fija', `$${formatNumber(amortizationTable[0]?.totalPayment || 0)}`],
+    ];
+
+    summaryData.forEach((item, idx) => {
+      const isTotal = item[0] === 'Total a Pagar';
+      if (isTotal) {
+        doc.setFont('helvetica', 'bold');
+        doc.setFillColor(0, 123, 255);
+        doc.setTextColor(255, 255, 255);
+        doc.roundedRect(margin, yPos - 4, pageWidth - margin * 2, 8, 1, 1, 'F');
+      }
+      doc.text(item[0], margin + 2, yPos);
+      doc.text(item[1], pageWidth - margin - 2, yPos, { align: 'right' });
+      if (isTotal) {
+        doc.setTextColor(33, 37, 41);
+        doc.setFont('helvetica', 'normal');
+      }
+      yPos += 8;
+    });
+
+    // === TABLA DE AMORTIZACIÓN ===
+    yPos += 6;
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Cuadro de Marcha — Amortización', margin, yPos);
+    doc.line(margin, yPos + 2, pageWidth - margin, yPos + 2);
+
+    const tableHeaders = params.includeIva 
+      ? ['Cuota', 'Sdo. Capital', 'Cuota Pura', 'Capital', 'Interés', 'IVA', 'Total Cuota']
+      : ['Cuota', 'Sdo. Capital', 'Cuota Pura', 'Capital', 'Interés', 'Total Cuota'];
+
+    const tableBody = amortizationTable.map(row => {
+      const baseRow = [
+        row.period.toString(),
+        `$${formatNumber(row.beginningBalance)}`,
+        `$${formatNumber(row.payment)}`,
+        `$${formatNumber(row.principal)}`,
+        `$${formatNumber(row.interest)}`,
+      ];
+      if (params.includeIva) {
+        baseRow.push(`$${formatNumber(row.iva)}`);
+      }
+      baseRow.push(`$${formatNumber(row.totalPayment)}`);
+      return baseRow;
+    });
+
+    // Fila de totales
+    const totalsRowData = [
+      'TOTAL',
+      '',
+      `$${formatNumber(totals.totalPayment)}`,
+      `$${formatNumber(totals.totalPrincipal)}`,
+      `$${formatNumber(totals.totalInterest)}`,
+    ];
+    if (params.includeIva) {
+      totalsRowData.push(`$${formatNumber(totals.totalIva)}`);
+    }
+    totalsRowData.push(`$${formatNumber(totals.totalWithIva)}`);
+    tableBody.push(totalsRowData);
+
+    autoTable(doc, {
+      head: [tableHeaders],
+      body: tableBody,
+      startY: yPos + 4,
+      styles: {
+        fontSize: 7,
+        cellPadding: 2,
+        halign: 'right',
+      },
+      headStyles: {
+        fillColor: [33, 37, 41],
+        textColor: [255, 255, 255],
+        fontStyle: 'bold',
+        halign: 'center',
+      },
+      columnStyles: {
+        0: { halign: 'center', cellWidth: 14 },
+      },
+      alternateRowStyles: {
+        fillColor: [248, 249, 250],
+      },
+      didParseCell: (data) => {
+        // Estilo para la fila de totales
+        if (data.row.index === tableBody.length - 1) {
+          data.cell.styles.fillColor = [33, 37, 41];
+          data.cell.styles.textColor = [255, 255, 255];
+          data.cell.styles.fontStyle = 'bold';
+        }
+      },
+      margin: { left: margin, right: margin },
+    });
+
+    // === PIE DE PÁGINA ===
+    const finalY = (doc as any).lastAutoTable.finalY + 10;
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'italic');
+    doc.setTextColor(108, 117, 125);
+    doc.text('Documento generado automáticamente — AUTOBUS S.A. Sistema de Gestión', pageWidth / 2, finalY, { align: 'center' });
+
+    // Guardar PDF
+    const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    const clientStr = params.clientName ? `_${params.clientName.replace(/\s+/g, '_').substring(0, 20)}` : '';
+    doc.save(`sistema_frances${clientStr}_${dateStr}.pdf`);
+  };
   
   const handleReset = () => {
     setShowResults(false);
@@ -381,6 +613,10 @@ export function FrenchAmortizationSimulator() {
                 <Button variant="outline" onClick={handleExportExcel}>
                   <FileSpreadsheet className="w-4 h-4 mr-2" />
                   Exportar Excel
+                </Button>
+                <Button variant="outline" onClick={handleExportPDF}>
+                  <FileText className="w-4 h-4 mr-2" />
+                  Exportar PDF
                 </Button>
                 <Button variant="ghost" onClick={handleReset}>
                   Limpiar
