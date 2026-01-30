@@ -454,7 +454,7 @@ export function FrenchAmortizationSimulator() {
         0: { halign: 'center', cellWidth: 14 },
       },
       alternateRowStyles: {
-        fillColor: [248, 249, 250],
+        fillColor: [230, 230, 230],
       },
       didParseCell: (data) => {
         // Estilo para la fila de totales
