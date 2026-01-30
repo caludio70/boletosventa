@@ -10,18 +10,20 @@ import { DebtRefinancing } from '@/components/DebtRefinancing';
 import { InterestCalculator } from '@/components/InterestCalculator';
 import { InflationCalculator } from '@/components/InflationCalculator';
 import { ProformaGenerator } from '@/components/ProformaGenerator';
+import { FrenchAmortizationSimulator } from '@/components/FrenchAmortizationSimulator';
 import { EmptyState } from '@/components/EmptyState';
 import { ImportExcel } from '@/components/ImportExcel';
 import { PDFUploader } from '@/components/PDFUploader';
 import { searchTicketsOrClient, getClientSummary, getTotalsByTicket } from '@/lib/realData';
 import { Ticket, ClientSummary, OperationRow } from '@/lib/types';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { FileText, LayoutList, Table, Calendar, Loader2, AlertTriangle, Calculator, Percent, TrendingUp, FilePlus } from 'lucide-react';
+import { FileText, LayoutList, Table, Calendar, Loader2, AlertTriangle, Calculator, Percent, TrendingUp, FilePlus, Landmark } from 'lucide-react';
 import { useOperationsData } from '@/hooks/useOperationsData';
 import { RefinancingProvider } from '@/contexts/RefinancingContext';
+
 export default function Index() {
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeView, setActiveView] = useState<'search' | 'totals' | 'projections' | 'aging' | 'refinancing' | 'interests' | 'inflation' | 'proforma'>('totals');
+  const [activeView, setActiveView] = useState<'search' | 'totals' | 'projections' | 'aging' | 'refinancing' | 'interests' | 'inflation' | 'proforma' | 'french'>('totals');
   const [searchResult, setSearchResult] = useState<{
     type: 'ticket' | 'client' | 'not_found' | 'initial';
     tickets: Ticket[];
@@ -65,7 +67,7 @@ export default function Index() {
             {/* Navigation Tabs */}
             <div className="flex flex-col gap-3">
               <Tabs value={activeView} onValueChange={(val) => setActiveView(val as typeof activeView)} className="w-full">
-                <TabsList className="grid w-full grid-cols-2 gap-1 p-1 h-auto bg-muted/50 sm:grid-cols-4 xl:grid-cols-8">
+                <TabsList className="grid w-full grid-cols-3 gap-1 p-1 h-auto bg-muted/50 sm:grid-cols-3 lg:grid-cols-9">
                   <TabsTrigger value="search" className="w-full justify-start gap-1.5 px-3 py-1.5 text-xs sm:justify-center">
                     <FileText className="w-3.5 h-3.5" />
                     Buscar Operación
@@ -97,6 +99,10 @@ export default function Index() {
                   <TabsTrigger value="proforma" className="w-full justify-start gap-1.5 px-3 py-1.5 text-xs sm:justify-center">
                     <FilePlus className="w-3.5 h-3.5" />
                     Proforma
+                  </TabsTrigger>
+                  <TabsTrigger value="french" className="w-full justify-start gap-1.5 px-3 py-1.5 text-xs sm:justify-center">
+                    <Landmark className="w-3.5 h-3.5" />
+                    Sist. Francés
                   </TabsTrigger>
                 </TabsList>
               </Tabs>
@@ -199,6 +205,10 @@ export default function Index() {
 
             {activeView === 'proforma' && (
               <ProformaGenerator />
+            )}
+
+            {activeView === 'french' && (
+              <FrenchAmortizationSimulator />
             )}
           </div>
         </main>
