@@ -1,1 +1,7 @@
 project_id = "dcavtdwpbexmyifmmtio"
+
+[functions.send-purchase-approval]
+verify_jwt = false
+
+[functions.handle-purchase-approval]
+verify_jwt = false

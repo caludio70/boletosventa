@@ -798,6 +798,324 @@ export async function exportPurchaseRequestToPDF(data: PurchaseRequestPDFData) {
   }
 }
 
+// Generate PDF as base64 string (for email attachment)
+export async function generatePurchaseRequestPDFBase64(data: PurchaseRequestPDFData): Promise<string> {
+  const doc = new jsPDF('p', 'mm', 'a4');
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const margin = 12;
+  const contentWidth = pageWidth - margin * 2;
+  
+  // Helper to load images
+  const loadImage = (src: string): Promise<HTMLImageElement> => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = reject;
+      img.src = src;
+    });
+  };
+
+  // Helper to draw dotted line
+  const drawDottedLine = (x1: number, y: number, x2: number) => {
+    doc.setDrawColor(100, 100, 100);
+    doc.setLineDashPattern([0.5, 1], 0);
+    doc.line(x1, y, x2, y);
+    doc.setLineDashPattern([], 0);
+  };
+
+  // Helper to draw checkbox
+  const drawCheckbox = (x: number, y: number, checked: boolean = false) => {
+    doc.setDrawColor(0);
+    doc.setLineWidth(0.3);
+    doc.rect(x, y - 3, 4, 4);
+    if (checked) {
+      doc.setFont('helvetica', 'bold');
+      doc.text('X', x + 0.8, y);
+    }
+  };
+
+  // Helper to draw section title
+  const drawSectionTitle = (title: string, y: number) => {
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9);
+    const titleWidth = doc.getTextWidth(title);
+    const titleX = (pageWidth - titleWidth) / 2;
+    doc.text(title, titleX, y);
+    doc.setLineWidth(0.3);
+    doc.line(titleX, y + 1, titleX + titleWidth, y + 1);
+    return y + 6;
+  };
+
+  try {
+    // Load Mercedes-Benz logo
+    const mercedesImg = await loadImage('/logos/mercedes-benz-star.png');
+    
+    // ========== HEADER ==========
+    let y = 12;
+    
+    // Mercedes-Benz star logo (left)
+    doc.addImage(mercedesImg, 'PNG', margin, y - 2, 12, 12);
+    
+    // Mercedes-Benz text and company info
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(14);
+    doc.text('Mercedes-Benz', margin + 14, y + 4);
+    
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'bold');
+    doc.text('AUTOBUS S.A.', margin + 14, y + 9);
+    
+    // Title centered
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    const title = 'SOLICITUD DE COMPRA';
+    const titleWidth = doc.getTextWidth(title);
+    doc.text(title, (pageWidth - titleWidth) / 2, y + 4);
+    
+    // Request number (right side)
+    doc.setFontSize(10);
+    doc.text(`N° ${data.requestNumber}`, pageWidth - margin - 30, y + 4);
+    
+    // Date (right side below number)
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.text(`Fecha: ${new Date().toLocaleDateString('es-AR')}`, pageWidth - margin - 30, y + 9);
+    
+    y += 18;
+    
+    // Divider line
+    doc.setLineWidth(0.5);
+    doc.line(margin, y, pageWidth - margin, y);
+    y += 6;
+    
+    // ========== BUYER DATA ==========
+    y = drawSectionTitle('DATOS DEL COMPRADOR', y);
+    
+    const col1 = margin + 2;
+    const col2 = margin + contentWidth / 2;
+    
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    
+    // Row 1: Name and Phone
+    doc.text('Nombre / Razón Social:', col1, y);
+    doc.text(data.buyer.name || '', col1 + 38, y);
+    drawDottedLine(col1 + 38, y + 1, col2 - 5);
+    
+    doc.text('Tel:', col2, y);
+    doc.text(data.buyer.phone || '', col2 + 10, y);
+    drawDottedLine(col2 + 10, y + 1, pageWidth - margin - 2);
+    y += 6;
+    
+    // Row 2: Address and Email
+    doc.text('Domicilio:', col1, y);
+    doc.text(data.buyer.address || '', col1 + 20, y);
+    drawDottedLine(col1 + 20, y + 1, col2 - 5);
+    
+    doc.text('Email:', col2, y);
+    doc.text(data.buyer.email || '', col2 + 15, y);
+    drawDottedLine(col2 + 15, y + 1, pageWidth - margin - 2);
+    y += 6;
+    
+    // Row 3: Locality, Postal Code, IVA
+    doc.text('Localidad:', col1, y);
+    doc.text(data.buyer.locality || '', col1 + 22, y);
+    drawDottedLine(col1 + 22, y + 1, col1 + 60);
+    
+    doc.text('C.P.:', col1 + 62, y);
+    doc.text(data.buyer.postalCode || '', col1 + 72, y);
+    drawDottedLine(col1 + 72, y + 1, col2 - 5);
+    
+    doc.text('Cond. IVA:', col2, y);
+    doc.text(data.buyer.ivaCondition || '', col2 + 22, y);
+    drawDottedLine(col2 + 22, y + 1, pageWidth - margin - 2);
+    y += 6;
+    
+    // Row 4: ID Type and Number
+    const idTypes = ['DNI', 'CUIT', 'LC', 'LE'];
+    doc.text('Tipo:', col1, y);
+    let idX = col1 + 12;
+    idTypes.forEach((type) => {
+      doc.text(type, idX + 5, y);
+      drawCheckbox(idX, y, data.buyer.idType === type);
+      idX += 18;
+    });
+    
+    doc.text('Número:', col2, y);
+    doc.text(data.buyer.idNumber || '', col2 + 18, y);
+    drawDottedLine(col2 + 18, y + 1, pageWidth - margin - 2);
+    y += 10;
+    
+    // ========== UNIT DATA ==========
+    y = drawSectionTitle('UNIDAD A ADQUIRIR', y);
+    
+    // Table header
+    const unitCols = [margin, margin + 15, margin + 40, margin + 75, margin + 110, margin + 140, margin + 165];
+    const unitHeaders = ['Cantidad', 'Marca', 'Modelo', 'Carrocería', 'Tipo', 'Año', 'Cond.'];
+    
+    doc.setFillColor(220, 220, 220);
+    doc.rect(margin, y - 3, contentWidth, 6, 'F');
+    
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7);
+    unitHeaders.forEach((header, i) => {
+      doc.text(header, unitCols[i] + 2, y);
+    });
+    y += 5;
+    
+    // Table row
+    doc.setFont('helvetica', 'normal');
+    doc.rect(margin, y - 3, contentWidth, 6);
+    
+    doc.text(String(data.unit.quantity), unitCols[0] + 5, y);
+    doc.text(data.unit.brand || '', unitCols[1] + 2, y);
+    doc.text(data.unit.model || '', unitCols[2] + 2, y);
+    doc.text(data.unit.bodywork || '', unitCols[3] + 2, y);
+    doc.text(data.unit.type || '', unitCols[4] + 2, y);
+    doc.text(data.unit.year || '', unitCols[5] + 2, y);
+    doc.text(data.unit.condition === '0km' ? '0 Km' : 'Usado', unitCols[6] + 2, y);
+    y += 10;
+    
+    // ========== PRICING ==========
+    y = drawSectionTitle('PRECIO DE LA UNIDAD', y);
+    
+    // Price boxes
+    const priceBoxWidth = contentWidth / 3;
+    
+    doc.rect(margin, y - 2, priceBoxWidth, 10);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7);
+    doc.text('P.U. en U$S', margin + 2, y + 1);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.text(formatCurrency(data.price.priceUSD), margin + 2, y + 6);
+    
+    doc.rect(margin + priceBoxWidth, y - 2, priceBoxWidth, 10);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7);
+    doc.text('Dólar Ref. MBA', margin + priceBoxWidth + 2, y + 1);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.text(formatCurrency(data.price.dollarReference), margin + priceBoxWidth + 2, y + 6);
+    
+    doc.rect(margin + priceBoxWidth * 2, y - 2, priceBoxWidth, 10);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7);
+    doc.text('P.U. en $ (IVA Inc.)', margin + priceBoxWidth * 2 + 2, y + 1);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.text(formatCurrency(data.price.priceARS), margin + priceBoxWidth * 2 + 2, y + 6);
+    
+    y += 14;
+    
+    // ========== ADDITIONALS ==========
+    if (data.additionals && data.additionals.length > 0) {
+      y = drawSectionTitle('ADICIONALES', y);
+      
+      doc.setFillColor(220, 220, 220);
+      doc.rect(margin, y - 3, contentWidth, 5, 'F');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(7);
+      doc.text('Concepto', margin + 2, y);
+      doc.text('Monto U$S', margin + contentWidth - 30, y);
+      y += 4;
+      
+      doc.setFont('helvetica', 'normal');
+      data.additionals.forEach((add) => {
+        doc.rect(margin, y - 3, contentWidth, 5);
+        doc.text(add.concept || '', margin + 2, y);
+        doc.text(formatCurrency(add.amount), margin + contentWidth - 30, y);
+        y += 4;
+      });
+      
+      // Total additionals
+      doc.setFont('helvetica', 'bold');
+      doc.rect(margin, y - 3, contentWidth, 5);
+      doc.text('TOTAL ADICIONALES', margin + 2, y);
+      doc.text(formatCurrency(data.totalAdditionals), margin + contentWidth - 30, y);
+      y += 8;
+    }
+    
+    // ========== USED UNITS ==========
+    if (data.usedUnits && data.usedUnits.length > 0) {
+      y = drawSectionTitle('UNIDADES USADAS COMO PARTE DE PAGO', y);
+      
+      const usedCols = [margin, margin + 25, margin + 55, margin + 75, margin + 100, margin + 125, margin + 150];
+      const usedHeaders = ['Marca', 'Modelo', 'Año', 'Dominio', 'Nro Int.', 'Carrocería', 'Valor U$S'];
+      
+      doc.setFillColor(220, 220, 220);
+      doc.rect(margin, y - 3, contentWidth, 5, 'F');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(6);
+      usedHeaders.forEach((header, i) => {
+        doc.text(header, usedCols[i] + 1, y);
+      });
+      y += 4;
+      
+      doc.setFont('helvetica', 'normal');
+      data.usedUnits.forEach((u) => {
+        doc.rect(margin, y - 3, contentWidth, 5);
+        doc.text(u.brand || '', usedCols[0] + 1, y);
+        doc.text(u.model || '', usedCols[1] + 1, y);
+        doc.text(u.year || '', usedCols[2] + 1, y);
+        doc.text(u.domain || '', usedCols[3] + 1, y);
+        doc.text(u.internalNumber || '', usedCols[4] + 1, y);
+        doc.text(u.bodywork || '', usedCols[5] + 1, y);
+        doc.text(formatCurrency(u.value), usedCols[6] + 1, y);
+        y += 4;
+      });
+      
+      // Total used
+      doc.setFont('helvetica', 'bold');
+      doc.rect(margin, y - 3, contentWidth, 5);
+      doc.text('TOTAL USADOS', margin + 2, y);
+      doc.text(formatCurrency(data.totalUsed), usedCols[6] + 1, y);
+      y += 8;
+    }
+    
+    // ========== FINAL BALANCE ==========
+    doc.setFillColor(0, 120, 180);
+    doc.rect(margin, y - 2, contentWidth, 10, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.text('SALDO FINAL A ABONAR:', margin + 5, y + 4);
+    doc.setFontSize(12);
+    doc.text(`U$S ${formatCurrency(data.finalBalance)}`, margin + contentWidth - 50, y + 4);
+    doc.setTextColor(0, 0, 0);
+    y += 14;
+    
+    // ========== PAYMENT METHOD ==========
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8);
+    doc.text('FORMA DE PAGO:', col1, y);
+    doc.setFont('helvetica', 'normal');
+    doc.text(data.paymentMethod || 'A confirmar', col1 + 35, y);
+    
+    doc.text('ENTREGA ESTIMADA:', col2, y);
+    doc.text(data.estimatedDelivery ? new Date(data.estimatedDelivery).toLocaleDateString('es-AR') : 'A confirmar', col2 + 40, y);
+    y += 8;
+    
+    // ========== OBSERVATIONS ==========
+    if (data.observations) {
+      doc.setFont('helvetica', 'bold');
+      doc.text('OBSERVACIONES:', margin, y);
+      y += 4;
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7);
+      const splitObs = doc.splitTextToSize(data.observations, contentWidth - 4);
+      doc.text(splitObs, margin + 2, y);
+    }
+    
+    // Return as base64
+    return doc.output('datauristring').split(',')[1];
+    
+  } catch (error) {
+    console.error('Error generando PDF base64:', error);
+    throw error;
+  }
+}
+
 // ================================
 // Debt Aging Exports
 // ================================
