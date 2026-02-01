@@ -6,10 +6,11 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Plus, Trash2, FileText, Copy, Check, Mail, MessageCircle } from 'lucide-react';
+import { Plus, Trash2, FileText, Copy, Check, Mail, MessageCircle, Send, Loader2 } from 'lucide-react';
 import { formatCurrency } from '@/lib/formatters';
-import { exportPurchaseRequestToPDF } from '@/lib/exportUtils';
+import { exportPurchaseRequestToPDF, generatePurchaseRequestPDFBase64 } from '@/lib/exportUtils';
 import { toast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Additional {
   id: string;
@@ -174,6 +175,7 @@ export function PurchaseRequestForm() {
   };
 
   const [copied, setCopied] = useState(false);
+  const [isSending, setIsSending] = useState(false);
 
   const handleCopyMessage = async () => {
     try {
@@ -227,6 +229,150 @@ export function PurchaseRequestForm() {
         description: "No se pudo generar el PDF",
         variant: "destructive",
       });
+    }
+  };
+
+  const handleSendForApproval = async () => {
+    // Validation
+    if (!buyer.name.trim()) {
+      toast({
+        title: "Error",
+        description: "Ingrese el nombre del comprador",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!supervisorEmail.trim()) {
+      toast({
+        title: "Error",
+        description: "Ingrese el email del supervisor para enviar la solicitud",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(supervisorEmail)) {
+      toast({
+        title: "Error",
+        description: "Ingrese un email válido para el supervisor",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSending(true);
+
+    try {
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+
+      // 1. Save request to database
+      const { data: savedRequest, error: saveError } = await supabase
+        .from('purchase_requests')
+        .insert({
+          request_number: requestNumber,
+          user_id: user?.id,
+          buyer_name: buyer.name,
+          buyer_address: buyer.address,
+          buyer_locality: buyer.locality,
+          buyer_postal_code: buyer.postalCode,
+          buyer_email: buyer.email,
+          buyer_phone: buyer.phone,
+          buyer_id_type: buyer.idType,
+          buyer_id_number: buyer.idNumber,
+          buyer_iva_condition: buyer.ivaCondition,
+          unit_quantity: unit.quantity,
+          unit_brand: unit.brand,
+          unit_model: unit.model,
+          unit_bodywork: unit.bodywork,
+          unit_type: unit.type,
+          unit_year: unit.year,
+          unit_condition: unit.condition,
+          price_usd: price.priceUSD,
+          dollar_reference: price.dollarReference,
+          price_ars: price.priceARS,
+          additionals: additionals.map(a => ({ concept: a.concept, amount: a.amount })),
+          used_units: usedUnits.map(u => ({
+            brand: u.brand,
+            model: u.model,
+            year: u.year,
+            domain: u.domain,
+            internalNumber: u.internalNumber,
+            bodywork: u.bodywork,
+            value: u.value,
+          })),
+          total_additionals: totalAdditionals,
+          total_used: totalUsed,
+          final_balance: finalBalance,
+          payment_method: paymentMethod,
+          estimated_delivery: estimatedDelivery || null,
+          observations,
+          supervisor_email: supervisorEmail,
+          status: 'pending',
+        })
+        .select()
+        .single();
+
+      if (saveError) {
+        console.error('Error saving request:', saveError);
+        throw new Error('No se pudo guardar la solicitud');
+      }
+
+      // 2. Generate PDF as base64
+      const pdfBase64 = await generatePurchaseRequestPDFBase64({
+        requestNumber,
+        buyer,
+        unit,
+        price,
+        additionals: additionals.map(a => ({ concept: a.concept, amount: a.amount })),
+        usedUnits: usedUnits.map(u => ({
+          brand: u.brand,
+          model: u.model,
+          year: u.year,
+          domain: u.domain,
+          internalNumber: u.internalNumber,
+          bodywork: u.bodywork,
+          value: u.value,
+        })),
+        paymentMethod,
+        estimatedDelivery,
+        observations,
+        totalAdditionals,
+        totalUsed,
+        finalBalance,
+      });
+
+      // 3. Send email with PDF attachment via edge function
+      const { data: emailData, error: emailError } = await supabase.functions.invoke('send-purchase-approval', {
+        body: {
+          requestId: savedRequest.id,
+          pdfBase64,
+          supervisorEmail,
+        },
+      });
+
+      if (emailError) {
+        console.error('Error sending email:', emailError);
+        throw new Error('La solicitud se guardó pero no se pudo enviar el email');
+      }
+
+      toast({
+        title: "✓ Solicitud enviada",
+        description: `Se envió la solicitud N° ${requestNumber} a ${supervisorEmail} con el PDF adjunto. El supervisor podrá aprobar o rechazar desde el email.`,
+      });
+
+    } catch (error: any) {
+      console.error('Error in handleSendForApproval:', error);
+      toast({
+        title: "Error",
+        description: error.message || "No se pudo enviar la solicitud",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSending(false);
     }
   };
 
@@ -746,7 +892,7 @@ export function PurchaseRequestForm() {
         </CardHeader>
         <CardContent>
           <div className="max-w-md">
-            <Label htmlFor="supervisorEmail">Email del Supervisor (opcional)</Label>
+            <Label htmlFor="supervisorEmail">Email del Supervisor *</Label>
             <Input 
               id="supervisorEmail"
               type="email"
@@ -756,7 +902,7 @@ export function PurchaseRequestForm() {
               className="mt-1"
             />
             <p className="text-xs text-muted-foreground mt-2">
-              Puede enviar la solicitud por email, WhatsApp o copiar el mensaje manualmente.
+              El supervisor recibirá un email con el PDF adjunto y botones para aprobar o rechazar la solicitud.
             </p>
           </div>
         </CardContent>
@@ -766,26 +912,39 @@ export function PurchaseRequestForm() {
       <div className="sticky bottom-0 z-20 -mx-2 sm:mx-0">
         <div className="rounded-lg border border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
           <div className="p-3 sm:p-4">
-            <div className="flex flex-wrap gap-3 justify-end">
-              <Button variant="outline" onClick={handleExportPDF}>
-                <FileText className="w-4 h-4 mr-2" />
-                Exportar PDF
-              </Button>
-              <Button variant="outline" onClick={handleCopyMessage}>
-                {copied ? <Check className="w-4 h-4 mr-2" /> : <Copy className="w-4 h-4 mr-2" />}
-                {copied ? 'Copiado!' : 'Copiar Mensaje'}
-              </Button>
-              <Button variant="outline" asChild>
-                <a href={generateWhatsAppUrl()} target="_blank" rel="noopener noreferrer">
-                  <MessageCircle className="w-4 h-4 mr-2" />
-                  WhatsApp
-                </a>
-              </Button>
-              <Button asChild>
-                <a href={generateEmailUrl()}>
-                  <Mail className="w-4 h-4 mr-2" />
-                  Enviar por Email
-                </a>
+            <div className="flex flex-wrap gap-3 justify-between items-center">
+              <div className="flex flex-wrap gap-2">
+                <Button variant="outline" size="sm" onClick={handleExportPDF}>
+                  <FileText className="w-4 h-4 mr-2" />
+                  PDF
+                </Button>
+                <Button variant="outline" size="sm" onClick={handleCopyMessage}>
+                  {copied ? <Check className="w-4 h-4 mr-1" /> : <Copy className="w-4 h-4 mr-1" />}
+                  {copied ? 'OK' : 'Copiar'}
+                </Button>
+                <Button variant="outline" size="sm" asChild>
+                  <a href={generateWhatsAppUrl()} target="_blank" rel="noopener noreferrer">
+                    <MessageCircle className="w-4 h-4 mr-1" />
+                    WA
+                  </a>
+                </Button>
+              </div>
+              <Button 
+                onClick={handleSendForApproval} 
+                disabled={isSending || !supervisorEmail.trim()}
+                className="gap-2"
+              >
+                {isSending ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Enviando...
+                  </>
+                ) : (
+                  <>
+                    <Send className="w-4 h-4" />
+                    Enviar para Aprobar
+                  </>
+                )}
               </Button>
             </div>
           </div>

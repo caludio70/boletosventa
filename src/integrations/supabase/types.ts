@@ -113,6 +113,129 @@ export type Database = {
         }
         Relationships: []
       }
+      purchase_requests: {
+        Row: {
+          additionals: Json | null
+          approval_token: string | null
+          approved_at: string | null
+          approved_by: string | null
+          buyer_address: string | null
+          buyer_email: string | null
+          buyer_id_number: string | null
+          buyer_id_type: string | null
+          buyer_iva_condition: string | null
+          buyer_locality: string | null
+          buyer_name: string
+          buyer_phone: string | null
+          buyer_postal_code: string | null
+          created_at: string
+          dollar_reference: number | null
+          estimated_delivery: string | null
+          final_balance: number | null
+          id: string
+          observations: string | null
+          payment_method: string | null
+          price_ars: number | null
+          price_usd: number | null
+          rejection_reason: string | null
+          request_number: string
+          status: string | null
+          supervisor_email: string | null
+          total_additionals: number | null
+          total_used: number | null
+          unit_bodywork: string | null
+          unit_brand: string | null
+          unit_condition: string | null
+          unit_model: string | null
+          unit_quantity: number | null
+          unit_type: string | null
+          unit_year: string | null
+          updated_at: string
+          used_units: Json | null
+          user_id: string | null
+        }
+        Insert: {
+          additionals?: Json | null
+          approval_token?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          buyer_address?: string | null
+          buyer_email?: string | null
+          buyer_id_number?: string | null
+          buyer_id_type?: string | null
+          buyer_iva_condition?: string | null
+          buyer_locality?: string | null
+          buyer_name: string
+          buyer_phone?: string | null
+          buyer_postal_code?: string | null
+          created_at?: string
+          dollar_reference?: number | null
+          estimated_delivery?: string | null
+          final_balance?: number | null
+          id?: string
+          observations?: string | null
+          payment_method?: string | null
+          price_ars?: number | null
+          price_usd?: number | null
+          rejection_reason?: string | null
+          request_number: string
+          status?: string | null
+          supervisor_email?: string | null
+          total_additionals?: number | null
+          total_used?: number | null
+          unit_bodywork?: string | null
+          unit_brand?: string | null
+          unit_condition?: string | null
+          unit_model?: string | null
+          unit_quantity?: number | null
+          unit_type?: string | null
+          unit_year?: string | null
+          updated_at?: string
+          used_units?: Json | null
+          user_id?: string | null
+        }
+        Update: {
+          additionals?: Json | null
+          approval_token?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          buyer_address?: string | null
+          buyer_email?: string | null
+          buyer_id_number?: string | null
+          buyer_id_type?: string | null
+          buyer_iva_condition?: string | null
+          buyer_locality?: string | null
+          buyer_name?: string
+          buyer_phone?: string | null
+          buyer_postal_code?: string | null
+          created_at?: string
+          dollar_reference?: number | null
+          estimated_delivery?: string | null
+          final_balance?: number | null
+          id?: string
+          observations?: string | null
+          payment_method?: string | null
+          price_ars?: number | null
+          price_usd?: number | null
+          rejection_reason?: string | null
+          request_number?: string
+          status?: string | null
+          supervisor_email?: string | null
+          total_additionals?: number | null
+          total_used?: number | null
+          unit_bodywork?: string | null
+          unit_brand?: string | null
+          unit_condition?: string | null
+          unit_model?: string | null
+          unit_quantity?: number | null
+          unit_type?: string | null
+          unit_year?: string | null
+          updated_at?: string
+          used_units?: Json | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
