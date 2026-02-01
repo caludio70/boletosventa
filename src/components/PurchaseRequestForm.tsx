@@ -6,8 +6,10 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Plus, Trash2, Send, FileText } from 'lucide-react';
+import { Plus, Trash2, Send, FileText, Copy, Check } from 'lucide-react';
 import { formatCurrency } from '@/lib/formatters';
+import { exportPurchaseRequestToPDF } from '@/lib/exportUtils';
+import { toast } from '@/hooks/use-toast';
 
 interface Additional {
   id: string;
@@ -167,9 +169,68 @@ export function PurchaseRequestForm() {
       : `https://web.whatsapp.com/send?text=${encoded}`;
   };
 
+  const [copied, setCopied] = useState(false);
+
+  const getWhatsAppMessage = () => {
+    const additionalsDetail = additionals.map(a => `${a.concept}: U$S ${a.amount}`).join(' | ') || 'Sin adicionales';
+    const usedDetail = usedUnits.map(u => `${u.brand} ${u.model} ${u.year} (${u.domain})`).join(' | ') || 'Sin usados';
+    
+    return (
+      `🔔 NUEVA SOLICITUD DE COMPRA N°: ${requestNumber}\n` +
+      `👤 Cliente: ${buyer.name}\n` +
+      `🚌 Unidad: ${unit.brand} ${unit.model}\n` +
+      `➕ ADICIONALES: ${additionalsDetail}\n` +
+      `🔄 USADOS: ${usedDetail}\n` +
+      `💰 SALDO FINAL: U$S ${formatCurrency(finalBalance)}\n` +
+      `📋 Revisar y Autorizar aquí: ${window.location.href}`
+    );
+  };
+
+  const handleCopyMessage = async () => {
+    try {
+      await navigator.clipboard.writeText(getWhatsAppMessage());
+      setCopied(true);
+      toast({
+        title: "Mensaje copiado",
+        description: "Ahora podés pegarlo manualmente en WhatsApp",
+      });
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      toast({
+        title: "Error al copiar",
+        description: "No se pudo copiar el mensaje al portapapeles",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleExportPDF = () => {
-    // TODO: Implement PDF export
-    console.log('Export PDF');
+    exportPurchaseRequestToPDF({
+      requestNumber,
+      buyer,
+      unit,
+      price,
+      additionals: additionals.map(a => ({ concept: a.concept, amount: a.amount })),
+      usedUnits: usedUnits.map(u => ({
+        brand: u.brand,
+        model: u.model,
+        year: u.year,
+        domain: u.domain,
+        internalNumber: u.internalNumber,
+        bodywork: u.bodywork,
+        value: u.value,
+      })),
+      paymentMethod,
+      estimatedDelivery,
+      observations,
+      totalAdditionals,
+      totalUsed,
+      finalBalance,
+    });
+    toast({
+      title: "PDF generado",
+      description: `Solicitud ${requestNumber} exportada correctamente`,
+    });
   };
 
   return (
@@ -708,6 +769,10 @@ export function PurchaseRequestForm() {
         <Button variant="outline" onClick={handleExportPDF}>
           <FileText className="w-4 h-4 mr-2" />
           Exportar PDF
+        </Button>
+        <Button variant="outline" onClick={handleCopyMessage}>
+          {copied ? <Check className="w-4 h-4 mr-2" /> : <Copy className="w-4 h-4 mr-2" />}
+          {copied ? 'Copiado!' : 'Copiar Mensaje'}
         </Button>
         <Button asChild>
           <a href={generateWhatsAppUrl()} target="_blank" rel="noopener noreferrer">

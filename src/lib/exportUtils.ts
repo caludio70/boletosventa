@@ -315,6 +315,319 @@ function getDateString(): string {
   return `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
 }
 
+// ================================
+// Purchase Request PDF Export
+// ================================
+
+export interface PurchaseRequestPDFData {
+  requestNumber: string;
+  buyer: {
+    name: string;
+    address: string;
+    locality: string;
+    postalCode: string;
+    email: string;
+    phone: string;
+    idType: string;
+    idNumber: string;
+    ivaCondition: string;
+  };
+  unit: {
+    quantity: number;
+    brand: string;
+    model: string;
+    bodywork: string;
+    type: string;
+    year: string;
+    condition: '0km' | 'usado';
+  };
+  price: {
+    priceUSD: number;
+    dollarReference: number;
+    priceARS: number;
+  };
+  additionals: { concept: string; amount: number }[];
+  usedUnits: {
+    brand: string;
+    model: string;
+    year: string;
+    domain: string;
+    internalNumber: string;
+    bodywork: string;
+    value: number;
+  }[];
+  paymentMethod: string;
+  estimatedDelivery: string;
+  observations: string;
+  totalAdditionals: number;
+  totalUsed: number;
+  finalBalance: number;
+}
+
+export function exportPurchaseRequestToPDF(data: PurchaseRequestPDFData) {
+  const doc = new jsPDF('p', 'mm', 'a4');
+  const pageWidth = doc.internal.pageSize.getWidth();
+  let y = 15;
+
+  // =============== HEADER ===============
+  doc.setFontSize(18);
+  doc.setFont('helvetica', 'bold');
+  doc.text('AUTOBUS S.A.', 14, y);
+  
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'normal');
+  doc.text('Concesionario Oficial Mercedes-Benz', 14, y + 6);
+  
+  // Request number on the right
+  doc.setFontSize(14);
+  doc.setFont('helvetica', 'bold');
+  doc.text(`N° ${data.requestNumber}`, pageWidth - 14, y, { align: 'right' });
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  doc.text(new Date().toLocaleDateString('es-AR'), pageWidth - 14, y + 6, { align: 'right' });
+
+  y += 16;
+  
+  // Title
+  doc.setFontSize(14);
+  doc.setFont('helvetica', 'bold');
+  doc.setFillColor(51, 51, 51);
+  doc.rect(14, y, pageWidth - 28, 8, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.text('SOLICITUD DE COMPRA', pageWidth / 2, y + 5.5, { align: 'center' });
+  doc.setTextColor(0, 0, 0);
+  
+  y += 14;
+
+  // =============== BUYER DATA ===============
+  doc.setFontSize(11);
+  doc.setFont('helvetica', 'bold');
+  doc.text('DATOS DEL COMPRADOR', 14, y);
+  y += 2;
+
+  const ivaLabels: Record<string, string> = {
+    'responsable_inscripto': 'Responsable Inscripto',
+    'consumidor_final': 'Consumidor Final',
+    'exento': 'Exento',
+    'monotributo': 'Monotributo',
+  };
+
+  autoTable(doc, {
+    body: [
+      ['Nombre / Razón Social', data.buyer.name || '—', 'Teléfono', data.buyer.phone || '—'],
+      ['Domicilio', data.buyer.address || '—', 'Email', data.buyer.email || '—'],
+      ['Localidad', data.buyer.locality || '—', 'C.P.', data.buyer.postalCode || '—'],
+      ['Cond. IVA', ivaLabels[data.buyer.ivaCondition] || data.buyer.ivaCondition || '—', `${data.buyer.idType}`, data.buyer.idNumber || '—'],
+    ],
+    startY: y,
+    styles: { fontSize: 9, cellPadding: 2 },
+    columnStyles: {
+      0: { fontStyle: 'bold', cellWidth: 35 },
+      1: { cellWidth: 55 },
+      2: { fontStyle: 'bold', cellWidth: 25 },
+      3: { cellWidth: 55 },
+    },
+    theme: 'grid',
+  });
+
+  y = (doc as any).lastAutoTable.finalY + 8;
+
+  // =============== UNIT DATA ===============
+  doc.setFontSize(11);
+  doc.setFont('helvetica', 'bold');
+  doc.text('UNIDAD A ADQUIRIR', 14, y);
+  y += 2;
+
+  autoTable(doc, {
+    body: [
+      ['Cantidad', data.unit.quantity.toString(), 'Marca', data.unit.brand || '—', 'Modelo', data.unit.model || '—'],
+      ['Carrocería', data.unit.bodywork || '—', 'Tipo', data.unit.type || '—', 'Año', data.unit.year || '—'],
+      ['Condición', data.unit.condition === '0km' ? '0 Km' : 'Usado', '', '', '', ''],
+    ],
+    startY: y,
+    styles: { fontSize: 9, cellPadding: 2 },
+    columnStyles: {
+      0: { fontStyle: 'bold', cellWidth: 25 },
+      1: { cellWidth: 30 },
+      2: { fontStyle: 'bold', cellWidth: 25 },
+      3: { cellWidth: 30 },
+      4: { fontStyle: 'bold', cellWidth: 25 },
+      5: { cellWidth: 30 },
+    },
+    theme: 'grid',
+  });
+
+  y = (doc as any).lastAutoTable.finalY + 8;
+
+  // =============== PRICE ===============
+  doc.setFontSize(11);
+  doc.setFont('helvetica', 'bold');
+  doc.text('PRECIO', 14, y);
+  y += 2;
+
+  autoTable(doc, {
+    body: [
+      ['Precio USD', formatCurrency(data.price.priceUSD), 'Dólar Ref.', `$ ${data.price.dollarReference.toLocaleString('es-AR')}`, 'Precio ARS', `$ ${data.price.priceARS.toLocaleString('es-AR')}`],
+    ],
+    startY: y,
+    styles: { fontSize: 9, cellPadding: 2 },
+    columnStyles: {
+      0: { fontStyle: 'bold', cellWidth: 25 },
+      1: { cellWidth: 30 },
+      2: { fontStyle: 'bold', cellWidth: 25 },
+      3: { cellWidth: 30 },
+      4: { fontStyle: 'bold', cellWidth: 25 },
+      5: { cellWidth: 30 },
+    },
+    theme: 'grid',
+  });
+
+  y = (doc as any).lastAutoTable.finalY + 8;
+
+  // =============== ADDITIONALS ===============
+  if (data.additionals.length > 0) {
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.text('ADICIONALES', 14, y);
+    y += 2;
+
+    const additionalsData = data.additionals.map(a => [a.concept, formatCurrency(a.amount)]);
+    additionalsData.push(['TOTAL ADICIONALES', formatCurrency(data.totalAdditionals)]);
+
+    autoTable(doc, {
+      head: [['Concepto', 'Monto USD']],
+      body: additionalsData,
+      startY: y,
+      styles: { fontSize: 9, cellPadding: 2 },
+      headStyles: { fillColor: [100, 100, 100] },
+      columnStyles: {
+        0: { cellWidth: 120 },
+        1: { cellWidth: 40, halign: 'right' },
+      },
+      didParseCell: (cellData) => {
+        if (cellData.row.index === additionalsData.length - 1) {
+          cellData.cell.styles.fontStyle = 'bold';
+        }
+      },
+    });
+
+    y = (doc as any).lastAutoTable.finalY + 8;
+  }
+
+  // =============== USED UNITS ===============
+  if (data.usedUnits.length > 0) {
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.text('UNIDADES USADAS COMO PARTE DE PAGO', 14, y);
+    y += 2;
+
+    const usedData = data.usedUnits.map(u => [
+      u.brand,
+      u.model,
+      u.year,
+      u.domain,
+      u.internalNumber,
+      u.bodywork,
+      formatCurrency(u.value),
+    ]);
+    usedData.push(['', '', '', '', '', 'TOTAL USADOS', formatCurrency(data.totalUsed)]);
+
+    autoTable(doc, {
+      head: [['Marca', 'Modelo', 'Año', 'Dominio', 'N° Int.', 'Carrocería', 'Valor USD']],
+      body: usedData,
+      startY: y,
+      styles: { fontSize: 8, cellPadding: 1.5 },
+      headStyles: { fillColor: [100, 100, 100] },
+      columnStyles: {
+        6: { halign: 'right' },
+      },
+      didParseCell: (cellData) => {
+        if (cellData.row.index === usedData.length - 1) {
+          cellData.cell.styles.fontStyle = 'bold';
+        }
+      },
+    });
+
+    y = (doc as any).lastAutoTable.finalY + 8;
+  }
+
+  // =============== SUMMARY ===============
+  doc.setFontSize(11);
+  doc.setFont('helvetica', 'bold');
+  doc.text('RESUMEN DE OPERACIÓN', 14, y);
+  y += 2;
+
+  autoTable(doc, {
+    body: [
+      ['Precio Unidad', formatCurrency(data.price.priceUSD)],
+      ['+ Adicionales', formatCurrency(data.totalAdditionals)],
+      ['- Usados', formatCurrency(data.totalUsed)],
+      ['SALDO FINAL', formatCurrency(data.finalBalance)],
+    ],
+    startY: y,
+    styles: { fontSize: 10, cellPadding: 3 },
+    columnStyles: {
+      0: { fontStyle: 'bold', cellWidth: 80 },
+      1: { cellWidth: 50, halign: 'right' },
+    },
+    theme: 'grid',
+    didParseCell: (cellData) => {
+      if (cellData.row.index === 3) {
+        cellData.cell.styles.fillColor = [51, 51, 51];
+        cellData.cell.styles.textColor = [255, 255, 255];
+        cellData.cell.styles.fontStyle = 'bold';
+      }
+    },
+  });
+
+  y = (doc as any).lastAutoTable.finalY + 8;
+
+  // =============== PAYMENT & DELIVERY ===============
+  const paymentLabels: Record<string, string> = {
+    'contado': 'Contado',
+    'cheque': 'Cheque',
+    'pagare': 'Pagaré',
+    'prenda': 'Prenda',
+    'financiado': 'Financiado',
+  };
+
+  autoTable(doc, {
+    body: [
+      ['Forma de Pago', paymentLabels[data.paymentMethod] || data.paymentMethod || '—', 'Fecha Est. Entrega', data.estimatedDelivery ? formatDate(new Date(data.estimatedDelivery)) : '—'],
+    ],
+    startY: y,
+    styles: { fontSize: 9, cellPadding: 2 },
+    columnStyles: {
+      0: { fontStyle: 'bold', cellWidth: 35 },
+      1: { cellWidth: 50 },
+      2: { fontStyle: 'bold', cellWidth: 40 },
+      3: { cellWidth: 45 },
+    },
+    theme: 'grid',
+  });
+
+  y = (doc as any).lastAutoTable.finalY + 8;
+
+  // =============== OBSERVATIONS ===============
+  if (data.observations) {
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.text('OBSERVACIONES', 14, y);
+    y += 4;
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    const splitObservations = doc.splitTextToSize(data.observations, pageWidth - 28);
+    doc.text(splitObservations, 14, y);
+  }
+
+  // Save
+  doc.save(`solicitud_compra_${data.requestNumber}_${getDateString()}.pdf`);
+}
+
+// ================================
+// Debt Aging Exports
+// ================================
+
 // Export Debt Aging to Excel
 export function exportDebtAgingToExcel(data: { ticketNumber: string; clientName: string; clientCode: string; operationDate: Date; totalSale: number; totalUsed: number; totalPayments: number; balance: number; daysOverdue: number; agingBucket: string }[], filename: string = 'aging_deuda') {
   const excelData = data.map(row => ({
@@ -440,6 +753,10 @@ export function exportDebtAgingToPDF(data: { ticketNumber: string; clientName: s
 
   doc.save(`${filename}_${getDateString()}.pdf`);
 }
+
+// ================================
+// Payment Projections Exports
+// ================================
 
 // Interface for future payment export
 interface FuturePaymentExport {
