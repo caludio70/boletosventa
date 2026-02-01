@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Plus, Trash2, Send, FileText, Copy, Check } from 'lucide-react';
+import { Plus, Trash2, FileText, Copy, Check, Mail, MessageCircle } from 'lucide-react';
 import { formatCurrency } from '@/lib/formatters';
 import { exportPurchaseRequestToPDF } from '@/lib/exportUtils';
 import { toast } from '@/hooks/use-toast';
@@ -93,7 +93,7 @@ export function PurchaseRequestForm() {
   const [paymentMethod, setPaymentMethod] = useState('');
   const [estimatedDelivery, setEstimatedDelivery] = useState('');
   const [observations, setObservations] = useState('');
-  const [supervisorPhone, setSupervisorPhone] = useState('');
+  const [supervisorEmail, setSupervisorEmail] = useState('');
 
   // Calculations
   const totalAdditionals = additionals.reduce((sum, a) => sum + (a.amount || 0), 0);
@@ -138,57 +138,46 @@ export function PurchaseRequestForm() {
     ));
   };
 
-  const generateWhatsAppUrl = () => {
-    const additionalsDetail = additionals.map(a => `${a.concept}: U$S ${a.amount}`).join(' | ') || 'Sin adicionales';
-    const usedDetail = usedUnits.map(u => `${u.brand} ${u.model} ${u.year} (${u.domain})`).join(' | ') || 'Sin usados';
-    
-    const message = 
-      `🔔 NUEVA SOLICITUD DE COMPRA N°: ${requestNumber}\n` +
-      `👤 Cliente: ${buyer.name}\n` +
-      `🚌 Unidad: ${unit.brand} ${unit.model}\n` +
-      `➕ ADICIONALES: ${additionalsDetail}\n` +
-      `🔄 USADOS: ${usedDetail}\n` +
-      `💰 SALDO FINAL: U$S ${formatCurrency(finalBalance)}\n` +
-      `📋 Revisar y Autorizar aquí: ${window.location.href}`;
-    
-    const encoded = encodeURIComponent(message);
-    // Limpiar el número de teléfono (solo dígitos)
-    const cleanPhone = supervisorPhone.replace(/\D/g, '');
-    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-
-    // En desktop usamos web.whatsapp.com que es más confiable que wa.me o api.whatsapp.com
-    // En mobile usamos el deep-link nativo
-    if (isMobile) {
-      return cleanPhone 
-        ? `whatsapp://send?phone=${cleanPhone}&text=${encoded}`
-        : `whatsapp://send?text=${encoded}`;
-    }
-    // web.whatsapp.com es la versión web oficial y no suele ser bloqueada
-    return cleanPhone
-      ? `https://web.whatsapp.com/send?phone=${cleanPhone}&text=${encoded}`
-      : `https://web.whatsapp.com/send?text=${encoded}`;
-  };
-
-  const [copied, setCopied] = useState(false);
-
-  const getWhatsAppMessage = () => {
+  const generateApprovalMessage = () => {
     const additionalsDetail = additionals.map(a => `${a.concept}: U$S ${a.amount}`).join(' | ') || 'Sin adicionales';
     const usedDetail = usedUnits.map(u => `${u.brand} ${u.model} ${u.year} (${u.domain})`).join(' | ') || 'Sin usados';
     
     return (
       `🔔 NUEVA SOLICITUD DE COMPRA N°: ${requestNumber}\n` +
       `👤 Cliente: ${buyer.name}\n` +
-      `🚌 Unidad: ${unit.brand} ${unit.model}\n` +
+      `📋 ${buyer.idType}: ${buyer.idNumber}\n` +
+      `🚌 Unidad: ${unit.quantity}x ${unit.brand} ${unit.model} ${unit.condition}\n` +
+      `🏭 Carrocería: ${unit.bodywork || 'N/A'}\n` +
+      `💵 Precio Unidad: U$S ${formatCurrency(price.priceUSD)}\n` +
       `➕ ADICIONALES: ${additionalsDetail}\n` +
       `🔄 USADOS: ${usedDetail}\n` +
       `💰 SALDO FINAL: U$S ${formatCurrency(finalBalance)}\n` +
-      `📋 Revisar y Autorizar aquí: ${window.location.href}`
+      `📦 Entrega estimada: ${estimatedDelivery || 'A confirmar'}\n` +
+      `💳 Forma de pago: ${paymentMethod || 'A confirmar'}\n` +
+      `📝 Observaciones: ${observations || 'Sin observaciones'}`
     );
   };
 
+  const generateEmailUrl = () => {
+    const subject = encodeURIComponent(`Solicitud de Compra N° ${requestNumber} - ${buyer.name}`);
+    const body = encodeURIComponent(generateApprovalMessage());
+    return `mailto:${supervisorEmail}?subject=${subject}&body=${body}`;
+  };
+
+  const generateWhatsAppUrl = () => {
+    const message = encodeURIComponent(generateApprovalMessage());
+    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    if (isMobile) {
+      return `whatsapp://send?text=${message}`;
+    }
+    return `https://web.whatsapp.com/send?text=${message}`;
+  };
+
+  const [copied, setCopied] = useState(false);
+
   const handleCopyMessage = async () => {
     try {
-      await navigator.clipboard.writeText(getWhatsAppMessage());
+      await navigator.clipboard.writeText(generateApprovalMessage());
       setCopied(true);
       toast({
         title: "Mensaje copiado",
@@ -750,23 +739,24 @@ export function PurchaseRequestForm() {
         </CardContent>
       </Card>
 
-      {/* Supervisor Phone */}
+      {/* Supervisor Email */}
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-base">Envío para Aprobación</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="max-w-sm">
-            <Label htmlFor="supervisorPhone">Teléfono del Supervisor (con código de país)</Label>
+          <div className="max-w-md">
+            <Label htmlFor="supervisorEmail">Email del Supervisor (opcional)</Label>
             <Input 
-              id="supervisorPhone"
-              value={supervisorPhone}
-              onChange={(e) => setSupervisorPhone(e.target.value)}
-              placeholder="Ej: 5491155551234"
+              id="supervisorEmail"
+              type="email"
+              value={supervisorEmail}
+              onChange={(e) => setSupervisorEmail(e.target.value)}
+              placeholder="supervisor@empresa.com"
               className="mt-1"
             />
-            <p className="text-xs text-muted-foreground mt-1">
-              Ingrese el número completo sin espacios ni guiones (ej: 5491155551234)
+            <p className="text-xs text-muted-foreground mt-2">
+              Puede enviar la solicitud por email, WhatsApp o copiar el mensaje manualmente.
             </p>
           </div>
         </CardContent>
@@ -782,10 +772,16 @@ export function PurchaseRequestForm() {
           {copied ? <Check className="w-4 h-4 mr-2" /> : <Copy className="w-4 h-4 mr-2" />}
           {copied ? 'Copiado!' : 'Copiar Mensaje'}
         </Button>
-        <Button asChild>
+        <Button variant="outline" asChild>
           <a href={generateWhatsAppUrl()} target="_blank" rel="noopener noreferrer">
-            <Send className="w-4 h-4 mr-2" />
-            Enviar para Aprobación
+            <MessageCircle className="w-4 h-4 mr-2" />
+            WhatsApp
+          </a>
+        </Button>
+        <Button asChild>
+          <a href={generateEmailUrl()}>
+            <Mail className="w-4 h-4 mr-2" />
+            Enviar por Email
           </a>
         </Button>
       </div>
