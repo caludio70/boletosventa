@@ -231,7 +231,7 @@ export function PurchaseRequestForm() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-28">
       {/* Header */}
       <Card className="border-border">
         <CardHeader className="pb-4">
@@ -762,33 +762,35 @@ export function PurchaseRequestForm() {
         </CardContent>
       </Card>
 
-      {/* Actions */}
-      <Card className="bg-muted/30">
-        <CardContent className="pt-6">
-          <div className="flex flex-wrap gap-3 justify-end">
-            <Button variant="outline" onClick={handleExportPDF}>
-              <FileText className="w-4 h-4 mr-2" />
-              Exportar PDF
-            </Button>
-            <Button variant="outline" onClick={handleCopyMessage}>
-              {copied ? <Check className="w-4 h-4 mr-2" /> : <Copy className="w-4 h-4 mr-2" />}
-              {copied ? 'Copiado!' : 'Copiar Mensaje'}
-            </Button>
-            <Button variant="outline" asChild>
-              <a href={generateWhatsAppUrl()} target="_blank" rel="noopener noreferrer">
-                <MessageCircle className="w-4 h-4 mr-2" />
-                WhatsApp
-              </a>
-            </Button>
-            <Button asChild>
-              <a href={generateEmailUrl()}>
-                <Mail className="w-4 h-4 mr-2" />
-                Enviar por Email
-              </a>
-            </Button>
+      {/* Actions (sticky bar so it's always visible) */}
+      <div className="sticky bottom-0 z-20 -mx-2 sm:mx-0">
+        <div className="rounded-lg border border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+          <div className="p-3 sm:p-4">
+            <div className="flex flex-wrap gap-3 justify-end">
+              <Button variant="outline" onClick={handleExportPDF}>
+                <FileText className="w-4 h-4 mr-2" />
+                Exportar PDF
+              </Button>
+              <Button variant="outline" onClick={handleCopyMessage}>
+                {copied ? <Check className="w-4 h-4 mr-2" /> : <Copy className="w-4 h-4 mr-2" />}
+                {copied ? 'Copiado!' : 'Copiar Mensaje'}
+              </Button>
+              <Button variant="outline" asChild>
+                <a href={generateWhatsAppUrl()} target="_blank" rel="noopener noreferrer">
+                  <MessageCircle className="w-4 h-4 mr-2" />
+                  WhatsApp
+                </a>
+              </Button>
+              <Button asChild>
+                <a href={generateEmailUrl()}>
+                  <Mail className="w-4 h-4 mr-2" />
+                  Enviar por Email
+                </a>
+              </Button>
+            </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }
