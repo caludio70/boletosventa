@@ -204,33 +204,41 @@ export function PurchaseRequestForm() {
     }
   };
 
-  const handleExportPDF = () => {
-    exportPurchaseRequestToPDF({
-      requestNumber,
-      buyer,
-      unit,
-      price,
-      additionals: additionals.map(a => ({ concept: a.concept, amount: a.amount })),
-      usedUnits: usedUnits.map(u => ({
-        brand: u.brand,
-        model: u.model,
-        year: u.year,
-        domain: u.domain,
-        internalNumber: u.internalNumber,
-        bodywork: u.bodywork,
-        value: u.value,
-      })),
-      paymentMethod,
-      estimatedDelivery,
-      observations,
-      totalAdditionals,
-      totalUsed,
-      finalBalance,
-    });
-    toast({
-      title: "PDF generado",
-      description: `Solicitud ${requestNumber} exportada correctamente`,
-    });
+  const handleExportPDF = async () => {
+    try {
+      await exportPurchaseRequestToPDF({
+        requestNumber,
+        buyer,
+        unit,
+        price,
+        additionals: additionals.map(a => ({ concept: a.concept, amount: a.amount })),
+        usedUnits: usedUnits.map(u => ({
+          brand: u.brand,
+          model: u.model,
+          year: u.year,
+          domain: u.domain,
+          internalNumber: u.internalNumber,
+          bodywork: u.bodywork,
+          value: u.value,
+        })),
+        paymentMethod,
+        estimatedDelivery,
+        observations,
+        totalAdditionals,
+        totalUsed,
+        finalBalance,
+      });
+      toast({
+        title: "PDF generado",
+        description: `Solicitud ${requestNumber} exportada correctamente`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "No se pudo generar el PDF",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
