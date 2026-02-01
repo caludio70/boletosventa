@@ -763,28 +763,32 @@ export function PurchaseRequestForm() {
       </Card>
 
       {/* Actions */}
-      <div className="flex flex-wrap gap-3 justify-end">
-        <Button variant="outline" onClick={handleExportPDF}>
-          <FileText className="w-4 h-4 mr-2" />
-          Exportar PDF
-        </Button>
-        <Button variant="outline" onClick={handleCopyMessage}>
-          {copied ? <Check className="w-4 h-4 mr-2" /> : <Copy className="w-4 h-4 mr-2" />}
-          {copied ? 'Copiado!' : 'Copiar Mensaje'}
-        </Button>
-        <Button variant="outline" asChild>
-          <a href={generateWhatsAppUrl()} target="_blank" rel="noopener noreferrer">
-            <MessageCircle className="w-4 h-4 mr-2" />
-            WhatsApp
-          </a>
-        </Button>
-        <Button asChild>
-          <a href={generateEmailUrl()}>
-            <Mail className="w-4 h-4 mr-2" />
-            Enviar por Email
-          </a>
-        </Button>
-      </div>
+      <Card className="bg-muted/30">
+        <CardContent className="pt-6">
+          <div className="flex flex-wrap gap-3 justify-end">
+            <Button variant="outline" onClick={handleExportPDF}>
+              <FileText className="w-4 h-4 mr-2" />
+              Exportar PDF
+            </Button>
+            <Button variant="outline" onClick={handleCopyMessage}>
+              {copied ? <Check className="w-4 h-4 mr-2" /> : <Copy className="w-4 h-4 mr-2" />}
+              {copied ? 'Copiado!' : 'Copiar Mensaje'}
+            </Button>
+            <Button variant="outline" asChild>
+              <a href={generateWhatsAppUrl()} target="_blank" rel="noopener noreferrer">
+                <MessageCircle className="w-4 h-4 mr-2" />
+                WhatsApp
+              </a>
+            </Button>
+            <Button asChild>
+              <a href={generateEmailUrl()}>
+                <Mail className="w-4 h-4 mr-2" />
+                Enviar por Email
+              </a>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
