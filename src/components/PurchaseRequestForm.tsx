@@ -91,6 +91,7 @@ export function PurchaseRequestForm() {
   const [paymentMethod, setPaymentMethod] = useState('');
   const [estimatedDelivery, setEstimatedDelivery] = useState('');
   const [observations, setObservations] = useState('');
+  const [supervisorPhone, setSupervisorPhone] = useState('');
 
   // Calculations
   const totalAdditionals = additionals.reduce((sum, a) => sum + (a.amount || 0), 0);
@@ -149,11 +150,21 @@ export function PurchaseRequestForm() {
       `📋 Revisar y Autorizar aquí: ${window.location.href}`;
     
     const encoded = encodeURIComponent(message);
+    // Limpiar el número de teléfono (solo dígitos)
+    const cleanPhone = supervisorPhone.replace(/\D/g, '');
     const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
-    // Some networks/extensions block api.whatsapp.com; wa.me is usually more reliable.
-    // On mobile, try the deep link first.
-    return isMobile ? `whatsapp://send?text=${encoded}` : `https://wa.me/?text=${encoded}`;
+    // En desktop usamos web.whatsapp.com que es más confiable que wa.me o api.whatsapp.com
+    // En mobile usamos el deep-link nativo
+    if (isMobile) {
+      return cleanPhone 
+        ? `whatsapp://send?phone=${cleanPhone}&text=${encoded}`
+        : `whatsapp://send?text=${encoded}`;
+    }
+    // web.whatsapp.com es la versión web oficial y no suele ser bloqueada
+    return cleanPhone
+      ? `https://web.whatsapp.com/send?phone=${cleanPhone}&text=${encoded}`
+      : `https://web.whatsapp.com/send?text=${encoded}`;
   };
 
   const handleExportPDF = () => {
@@ -667,6 +678,28 @@ export function PurchaseRequestForm() {
             placeholder="Ingrese observaciones adicionales..."
             rows={4}
           />
+        </CardContent>
+      </Card>
+
+      {/* Supervisor Phone */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">Envío para Aprobación</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="max-w-sm">
+            <Label htmlFor="supervisorPhone">Teléfono del Supervisor (con código de país)</Label>
+            <Input 
+              id="supervisorPhone"
+              value={supervisorPhone}
+              onChange={(e) => setSupervisorPhone(e.target.value)}
+              placeholder="Ej: 5491155551234"
+              className="mt-1"
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              Ingrese el número completo sin espacios ni guiones (ej: 5491155551234)
+            </p>
+          </div>
         </CardContent>
       </Card>
 
