@@ -143,10 +143,7 @@ serve(async (req: Request) => {
 </html>
     `;
 
-    // Convert base64 PDF to buffer
-    const pdfBuffer = Uint8Array.from(atob(pdfBase64), c => c.charCodeAt(0));
-
-    // Send email with PDF attachment
+    // Send email with PDF attachment using base64 content directly
     const { data: emailData, error: emailError } = await resend.emails.send({
       from: "AUTOBUS S.A. <onboarding@resend.dev>", // Change to your verified domain
       to: [supervisorEmail],
@@ -155,7 +152,7 @@ serve(async (req: Request) => {
       attachments: [
         {
           filename: `Solicitud_${request.request_number}.pdf`,
-          content: pdfBuffer,
+          content: pdfBase64,
         },
       ],
     });
