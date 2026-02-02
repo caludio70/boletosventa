@@ -3,6 +3,15 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -95,6 +104,8 @@ export function PurchaseRequestForm() {
   const [estimatedDelivery, setEstimatedDelivery] = useState('');
   const [observations, setObservations] = useState('');
   const [supervisorEmail, setSupervisorEmail] = useState('');
+  const [whatsAppDialogOpen, setWhatsAppDialogOpen] = useState(false);
+  const [whatsAppPhone, setWhatsAppPhone] = useState('');
 
   // Calculations
   const totalAdditionals = additionals.reduce((sum, a) => sum + (a.amount || 0), 0);
@@ -174,6 +185,32 @@ export function PurchaseRequestForm() {
       return `https://wa.me/${cleanPhone}?text=${message}`;
     }
     return `https://wa.me/?text=${message}`;
+  };
+
+  const handleOpenWhatsApp = () => {
+    const cleanPhone = whatsAppPhone.replace(/\D/g, '');
+    if (!cleanPhone) {
+      toast({
+        title: 'Falta el teléfono',
+        description: 'Ingresá el número con código de país (ej: 5491112345678).',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    const url = generateWhatsAppUrl(cleanPhone);
+    const popup = window.open(url, '_blank', 'noopener,noreferrer');
+
+    if (!popup) {
+      toast({
+        title: 'Bloqueo de pop-up',
+        description: 'Tu navegador bloqueó la pestaña nueva. Permití pop-ups e intentá de nuevo.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setWhatsAppDialogOpen(false);
   };
 
   const [copied, setCopied] = useState(false);
@@ -924,12 +961,45 @@ export function PurchaseRequestForm() {
                   {copied ? <Check className="w-4 h-4 mr-1" /> : <Copy className="w-4 h-4 mr-1" />}
                   {copied ? 'OK' : 'Copiar'}
                 </Button>
-                <Button variant="outline" size="sm" asChild>
-                  <a href={generateWhatsAppUrl()} target="_blank" rel="noopener noreferrer">
-                    <MessageCircle className="w-4 h-4 mr-1" />
-                    WA
-                  </a>
-                </Button>
+                <Dialog open={whatsAppDialogOpen} onOpenChange={setWhatsAppDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" size="sm">
+                      <MessageCircle className="w-4 h-4 mr-1" />
+                      WA
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Enviar por WhatsApp</DialogTitle>
+                      <DialogDescription>
+                        Ingresá el teléfono con código de país, sin “+” ni espacios. Ej: 5491112345678.
+                      </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="whatsapp-phone">Teléfono</Label>
+                      <Input
+                        id="whatsapp-phone"
+                        inputMode="numeric"
+                        value={whatsAppPhone}
+                        onChange={(e) => setWhatsAppPhone(e.target.value)}
+                        placeholder="5491112345678"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Se abrirá WhatsApp en una pestaña nueva para evitar bloqueos de seguridad.
+                      </p>
+                    </div>
+
+                    <DialogFooter>
+                      <Button variant="outline" onClick={() => setWhatsAppDialogOpen(false)}>
+                        Cancelar
+                      </Button>
+                      <Button onClick={handleOpenWhatsApp}>
+                        Abrir WhatsApp
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
               </div>
               <Button 
                 onClick={handleSendForApproval} 
