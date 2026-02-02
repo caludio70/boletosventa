@@ -165,13 +165,15 @@ export function PurchaseRequestForm() {
     return `mailto:${supervisorEmail}?subject=${subject}&body=${body}`;
   };
 
-  const generateWhatsAppUrl = () => {
+  const generateWhatsAppUrl = (phoneNumber?: string) => {
     const message = encodeURIComponent(generateApprovalMessage());
-    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-    if (isMobile) {
-      return `whatsapp://send?text=${message}`;
+    // Use universal wa.me format - works on mobile (opens app) and desktop (opens WhatsApp Web)
+    // Phone number should be without + or leading zeros, e.g. 5491112345678
+    const cleanPhone = phoneNumber?.replace(/[\s+\-()]/g, '') || '';
+    if (cleanPhone) {
+      return `https://wa.me/${cleanPhone}?text=${message}`;
     }
-    return `https://web.whatsapp.com/send?text=${message}`;
+    return `https://wa.me/?text=${message}`;
   };
 
   const [copied, setCopied] = useState(false);
