@@ -951,19 +951,20 @@ export function PurchaseRequestForm() {
       <div className="sticky bottom-0 z-20 -mx-2 sm:mx-0">
         <div className="rounded-lg border border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
           <div className="p-3 sm:p-4">
-            <div className="flex flex-wrap gap-3 justify-between items-center">
-              <div className="flex flex-wrap gap-2">
-                <Button variant="outline" size="sm" onClick={handleExportPDF}>
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              {/* Left actions: horizontal scroll on small screens so nothing gets clipped */}
+              <div className="flex gap-2 overflow-x-auto pb-1 -mb-1 sm:overflow-visible sm:pb-0 sm:mb-0">
+                <Button className="shrink-0" variant="outline" size="sm" onClick={handleExportPDF}>
                   <FileText className="w-4 h-4 mr-2" />
                   PDF
                 </Button>
-                <Button variant="outline" size="sm" onClick={handleCopyMessage}>
+                <Button className="shrink-0" variant="outline" size="sm" onClick={handleCopyMessage}>
                   {copied ? <Check className="w-4 h-4 mr-1" /> : <Copy className="w-4 h-4 mr-1" />}
                   {copied ? 'OK' : 'Copiar'}
                 </Button>
                 <Dialog open={whatsAppDialogOpen} onOpenChange={setWhatsAppDialogOpen}>
                   <DialogTrigger asChild>
-                    <Button variant="outline" size="sm">
+                    <Button className="shrink-0" variant="outline" size="sm">
                       <MessageCircle className="w-4 h-4 mr-1" />
                       WA
                     </Button>
@@ -1001,10 +1002,12 @@ export function PurchaseRequestForm() {
                   </DialogContent>
                 </Dialog>
               </div>
-              <Button 
-                onClick={handleSendForApproval} 
+
+              {/* Primary action: full width on mobile so it doesn't hide other buttons */}
+              <Button
+                onClick={handleSendForApproval}
                 disabled={isSending || !supervisorEmail.trim()}
-                className="gap-2"
+                className="gap-2 w-full sm:w-auto"
               >
                 {isSending ? (
                   <>
