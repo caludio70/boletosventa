@@ -203,7 +203,7 @@ export function FrenchAmortizationSimulator() {
     
     // Hoja de parámetros
     const paramsData = [
-      ['SIMULACIÓN SISTEMA FRANCÉS - AUTOBUS S.A.'],
+      [`SIMULACIÓN SISTEMA ${params.system === 'german' ? 'ALEMÁN' : 'FRANCÉS'} - AUTOBUS S.A.`],
       [],
       ['Cliente:', params.clientName || 'N/A'],
       ['CUIT:', params.clientCuit || 'N/A'],
@@ -314,7 +314,7 @@ export function FrenchAmortizationSimulator() {
 
     doc.setFontSize(11);
     doc.setFont('helvetica', 'normal');
-    doc.text('Simulación de Préstamo — Sistema Francés', margin + 34, 24);
+    doc.text(`Simulación de Préstamo — Sistema ${params.system === 'german' ? 'Alemán' : 'Francés'}`, margin + 34, 24);
 
     // Fecha
     doc.setFontSize(9);
