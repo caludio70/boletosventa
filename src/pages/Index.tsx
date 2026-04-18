@@ -68,8 +68,8 @@ export default function Index() {
             {/* Navigation Tabs */}
             <div className="flex flex-col gap-3">
               <Tabs value={activeView} onValueChange={(val) => setActiveView(val as typeof activeView)} className="w-full">
-                <TabsList className="grid w-full grid-cols-2 gap-1 p-1 h-auto bg-muted/50 sm:grid-cols-5 md:grid-cols-10">
-                  <TabsTrigger value="purchase" className="w-full justify-start gap-1.5 px-3 py-1.5 text-xs sm:justify-center">
+                <TabsList className="grid w-full grid-cols-2 gap-1 p-1 h-auto bg-muted/50 sm:grid-cols-5">
+                  <TabsTrigger value="purchase" className="w-full justify-center gap-1.5 px-3 py-2 text-xs font-semibold bg-primary/10 text-primary data-[state=active]:bg-primary data-[state=active]:text-primary-foreground border border-primary/30">
                     <ShoppingCart className="w-3.5 h-3.5" />
                     Nuevo Boleto
                   </TabsTrigger>
