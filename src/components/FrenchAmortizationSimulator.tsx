@@ -167,6 +167,7 @@ export function FrenchAmortizationSimulator() {
     periods: 12,
     tna: 42,
     periodicity: 'monthly',
+    system: 'french',
     includeIva: true,
     ivaRate: 10.5,
   });
@@ -177,7 +178,7 @@ export function FrenchAmortizationSimulator() {
   
   const amortizationTable = useMemo(() => {
     if (!showResults || params.capital <= 0 || params.periods <= 0) return [];
-    return calculateFrenchAmortization(params);
+    return calculateAmortization(params);
   }, [params, showResults]);
   
   const totals = useMemo(() => {
@@ -532,6 +533,7 @@ export function FrenchAmortizationSimulator() {
       periods: 12,
       tna: 42,
       periodicity: 'monthly',
+      system: 'french',
       includeIva: true,
       ivaRate: 10.5,
     });
