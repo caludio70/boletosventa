@@ -273,7 +273,7 @@ export function FrenchAmortizationSimulator() {
     
     const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
     const clientStr = params.clientName ? `_${params.clientName.replace(/\s+/g, '_').substring(0, 20)}` : '';
-    XLSX.writeFile(wb, `sistema_frances${clientStr}_${dateStr}.xlsx`);
+    XLSX.writeFile(wb, `sistema_${params.system === 'german' ? 'aleman' : 'frances'}${clientStr}_${dateStr}.xlsx`);
   };
 
   const handleExportPDF = async () => {
@@ -419,7 +419,7 @@ export function FrenchAmortizationSimulator() {
       ['Total Intereses', `$${formatNumber(totals.totalInterest)}`],
       ...(params.includeIva ? [['Total IVA (' + params.ivaRate + '%)', `$${formatNumber(totals.totalIva)}`]] : []),
       ['Total a Pagar', `$${formatNumber(totals.totalWithIva)}`],
-      ['Cuota Fija', `$${formatNumber(amortizationTable[0]?.totalPayment || 0)}`],
+      [params.system === 'german' ? 'Primera Cuota' : 'Cuota Fija', `$${formatNumber(amortizationTable[0]?.totalPayment || 0)}`],
     ];
 
     summaryData.forEach((item, idx) => {
@@ -521,7 +521,7 @@ export function FrenchAmortizationSimulator() {
     // Guardar PDF
     const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
     const clientStr = params.clientName ? `_${params.clientName.replace(/\s+/g, '_').substring(0, 20)}` : '';
-    doc.save(`sistema_frances${clientStr}_${dateStr}.pdf`);
+    doc.save(`sistema_${params.system === 'german' ? 'aleman' : 'frances'}${clientStr}_${dateStr}.pdf`);
   };
   
   const handleReset = () => {
@@ -772,7 +772,7 @@ export function FrenchAmortizationSimulator() {
                 <div className="text-lg font-bold text-primary">{formatCurrency(totals.totalWithIva, 'ARS')}</div>
               </div>
               <div className="rounded-lg border p-3">
-                <div className="text-xs text-muted-foreground">Cuota Fija</div>
+                <div className="text-xs text-muted-foreground">{params.system === 'german' ? 'Primera Cuota' : 'Cuota Fija'}</div>
                 <div className="text-lg font-semibold">{formatCurrency(amortizationTable[0]?.totalPayment || 0, 'ARS')}</div>
               </div>
             </div>
