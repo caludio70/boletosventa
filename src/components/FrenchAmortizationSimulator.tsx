@@ -111,6 +111,47 @@ function calculateFrenchAmortization(params: SimulationParams): AmortizationRow[
   return rows;
 }
 
+function calculateGermanAmortization(params: SimulationParams): AmortizationRow[] {
+  const { capital, periods, tna, periodicity, includeIva, ivaRate } = params;
+  const rates = calculateRates(tna, periodicity);
+  const periodicRateDecimal = rates.periodicRate / 100;
+  
+  // Sistema Alemán: amortización de capital constante
+  const principal = capital / periods;
+  
+  const rows: AmortizationRow[] = [];
+  let balance = capital;
+  
+  for (let i = 1; i <= periods; i++) {
+    const interest = balance * periodicRateDecimal;
+    const payment = principal + interest; // Cuota pura decreciente
+    const iva = includeIva ? interest * (ivaRate / 100) : 0;
+    const totalPayment = payment + iva;
+    const endingBalance = balance - principal;
+    
+    rows.push({
+      period: i,
+      beginningBalance: balance,
+      payment,
+      principal,
+      interest,
+      iva,
+      totalPayment,
+      endingBalance: Math.max(0, endingBalance),
+    });
+    
+    balance = endingBalance;
+  }
+  
+  return rows;
+}
+
+function calculateAmortization(params: SimulationParams): AmortizationRow[] {
+  return params.system === 'german'
+    ? calculateGermanAmortization(params)
+    : calculateFrenchAmortization(params);
+}
+
 function formatNumber(value: number, decimals = 2): string {
   return value.toLocaleString('es-AR', { 
     minimumFractionDigits: decimals, 
