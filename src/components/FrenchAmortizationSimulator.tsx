@@ -12,6 +12,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
 type Periodicity = 'monthly' | 'bimonthly' | 'quarterly' | 'semiannual' | 'annual';
+type AmortizationSystem = 'french' | 'german';
 
 interface SimulationParams {
   clientName: string;
@@ -20,6 +21,7 @@ interface SimulationParams {
   periods: number;
   tna: number; // Tasa Nominal Anual
   periodicity: Periodicity;
+  system: AmortizationSystem;
   includeIva: boolean;
   ivaRate: number;
 }
