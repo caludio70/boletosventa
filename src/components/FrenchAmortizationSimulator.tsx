@@ -546,10 +546,32 @@ export function FrenchAmortizationSimulator() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Calculator className="h-5 w-5" />
-            Simulador Sistema Francés
+            Simulador de Préstamos — Sistema {params.system === 'german' ? 'Alemán' : 'Francés'}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
+          {/* Selector de sistema */}
+          <div className="space-y-2">
+            <Label htmlFor="system">Sistema de Amortización</Label>
+            <Select
+              value={params.system}
+              onValueChange={(val) => setParams(p => ({ ...p, system: val as AmortizationSystem }))}
+            >
+              <SelectTrigger className="sm:max-w-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="french">Sistema Francés (cuota fija)</SelectItem>
+                <SelectItem value="german">Sistema Alemán (capital constante)</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              {params.system === 'french'
+                ? 'Cuotas iguales: el interés decrece y la amortización de capital crece.'
+                : 'Amortización de capital constante: la cuota total decrece en el tiempo.'}
+            </p>
+          </div>
+
           {/* Datos del cliente */}
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
