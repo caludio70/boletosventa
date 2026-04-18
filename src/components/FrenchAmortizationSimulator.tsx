@@ -12,6 +12,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
 type Periodicity = 'monthly' | 'bimonthly' | 'quarterly' | 'semiannual' | 'annual';
+type AmortizationSystem = 'french' | 'german';
 
 interface SimulationParams {
   clientName: string;
@@ -20,6 +21,7 @@ interface SimulationParams {
   periods: number;
   tna: number; // Tasa Nominal Anual
   periodicity: Periodicity;
+  system: AmortizationSystem;
   includeIva: boolean;
   ivaRate: number;
 }
@@ -109,6 +111,47 @@ function calculateFrenchAmortization(params: SimulationParams): AmortizationRow[
   return rows;
 }
 
+function calculateGermanAmortization(params: SimulationParams): AmortizationRow[] {
+  const { capital, periods, tna, periodicity, includeIva, ivaRate } = params;
+  const rates = calculateRates(tna, periodicity);
+  const periodicRateDecimal = rates.periodicRate / 100;
+  
+  // Sistema Alemán: amortización de capital constante
+  const principal = capital / periods;
+  
+  const rows: AmortizationRow[] = [];
+  let balance = capital;
+  
+  for (let i = 1; i <= periods; i++) {
+    const interest = balance * periodicRateDecimal;
+    const payment = principal + interest; // Cuota pura decreciente
+    const iva = includeIva ? interest * (ivaRate / 100) : 0;
+    const totalPayment = payment + iva;
+    const endingBalance = balance - principal;
+    
+    rows.push({
+      period: i,
+      beginningBalance: balance,
+      payment,
+      principal,
+      interest,
+      iva,
+      totalPayment,
+      endingBalance: Math.max(0, endingBalance),
+    });
+    
+    balance = endingBalance;
+  }
+  
+  return rows;
+}
+
+function calculateAmortization(params: SimulationParams): AmortizationRow[] {
+  return params.system === 'german'
+    ? calculateGermanAmortization(params)
+    : calculateFrenchAmortization(params);
+}
+
 function formatNumber(value: number, decimals = 2): string {
   return value.toLocaleString('es-AR', { 
     minimumFractionDigits: decimals, 
@@ -124,6 +167,7 @@ export function FrenchAmortizationSimulator() {
     periods: 12,
     tna: 42,
     periodicity: 'monthly',
+    system: 'french',
     includeIva: true,
     ivaRate: 10.5,
   });
@@ -134,7 +178,7 @@ export function FrenchAmortizationSimulator() {
   
   const amortizationTable = useMemo(() => {
     if (!showResults || params.capital <= 0 || params.periods <= 0) return [];
-    return calculateFrenchAmortization(params);
+    return calculateAmortization(params);
   }, [params, showResults]);
   
   const totals = useMemo(() => {
@@ -159,7 +203,7 @@ export function FrenchAmortizationSimulator() {
     
     // Hoja de parámetros
     const paramsData = [
-      ['SIMULACIÓN SISTEMA FRANCÉS - AUTOBUS S.A.'],
+      [`SIMULACIÓN SISTEMA ${params.system === 'german' ? 'ALEMÁN' : 'FRANCÉS'} - AUTOBUS S.A.`],
       [],
       ['Cliente:', params.clientName || 'N/A'],
       ['CUIT:', params.clientCuit || 'N/A'],
@@ -229,7 +273,7 @@ export function FrenchAmortizationSimulator() {
     
     const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
     const clientStr = params.clientName ? `_${params.clientName.replace(/\s+/g, '_').substring(0, 20)}` : '';
-    XLSX.writeFile(wb, `sistema_frances${clientStr}_${dateStr}.xlsx`);
+    XLSX.writeFile(wb, `sistema_${params.system === 'german' ? 'aleman' : 'frances'}${clientStr}_${dateStr}.xlsx`);
   };
 
   const handleExportPDF = async () => {
@@ -270,7 +314,7 @@ export function FrenchAmortizationSimulator() {
 
     doc.setFontSize(11);
     doc.setFont('helvetica', 'normal');
-    doc.text('Simulación de Préstamo — Sistema Francés', margin + 34, 24);
+    doc.text(`Simulación de Préstamo — Sistema ${params.system === 'german' ? 'Alemán' : 'Francés'}`, margin + 34, 24);
 
     // Fecha
     doc.setFontSize(9);
@@ -375,7 +419,7 @@ export function FrenchAmortizationSimulator() {
       ['Total Intereses', `$${formatNumber(totals.totalInterest)}`],
       ...(params.includeIva ? [['Total IVA (' + params.ivaRate + '%)', `$${formatNumber(totals.totalIva)}`]] : []),
       ['Total a Pagar', `$${formatNumber(totals.totalWithIva)}`],
-      ['Cuota Fija', `$${formatNumber(amortizationTable[0]?.totalPayment || 0)}`],
+      [params.system === 'german' ? 'Primera Cuota' : 'Cuota Fija', `$${formatNumber(amortizationTable[0]?.totalPayment || 0)}`],
     ];
 
     summaryData.forEach((item, idx) => {
@@ -477,7 +521,7 @@ export function FrenchAmortizationSimulator() {
     // Guardar PDF
     const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
     const clientStr = params.clientName ? `_${params.clientName.replace(/\s+/g, '_').substring(0, 20)}` : '';
-    doc.save(`sistema_frances${clientStr}_${dateStr}.pdf`);
+    doc.save(`sistema_${params.system === 'german' ? 'aleman' : 'frances'}${clientStr}_${dateStr}.pdf`);
   };
   
   const handleReset = () => {
@@ -489,6 +533,7 @@ export function FrenchAmortizationSimulator() {
       periods: 12,
       tna: 42,
       periodicity: 'monthly',
+      system: 'french',
       includeIva: true,
       ivaRate: 10.5,
     });
@@ -501,10 +546,32 @@ export function FrenchAmortizationSimulator() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Calculator className="h-5 w-5" />
-            Simulador Sistema Francés
+            Simulador de Préstamos — Sistema {params.system === 'german' ? 'Alemán' : 'Francés'}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
+          {/* Selector de sistema */}
+          <div className="space-y-2">
+            <Label htmlFor="system">Sistema de Amortización</Label>
+            <Select
+              value={params.system}
+              onValueChange={(val) => setParams(p => ({ ...p, system: val as AmortizationSystem }))}
+            >
+              <SelectTrigger className="sm:max-w-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="french">Sistema Francés (cuota fija)</SelectItem>
+                <SelectItem value="german">Sistema Alemán (capital constante)</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              {params.system === 'french'
+                ? 'Cuotas iguales: el interés decrece y la amortización de capital crece.'
+                : 'Amortización de capital constante: la cuota total decrece en el tiempo.'}
+            </p>
+          </div>
+
           {/* Datos del cliente */}
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
@@ -705,7 +772,7 @@ export function FrenchAmortizationSimulator() {
                 <div className="text-lg font-bold text-primary">{formatCurrency(totals.totalWithIva, 'ARS')}</div>
               </div>
               <div className="rounded-lg border p-3">
-                <div className="text-xs text-muted-foreground">Cuota Fija</div>
+                <div className="text-xs text-muted-foreground">{params.system === 'german' ? 'Primera Cuota' : 'Cuota Fija'}</div>
                 <div className="text-lg font-semibold">{formatCurrency(amortizationTable[0]?.totalPayment || 0, 'ARS')}</div>
               </div>
             </div>
