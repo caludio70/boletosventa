@@ -134,6 +134,41 @@ export function ProformaGenerator() {
       });
     };
 
+    const getContainedDimensions = (
+      img: HTMLImageElement,
+      maxWidth: number,
+      maxHeight: number
+    ) => {
+      const originalWidth = img.naturalWidth || img.width;
+      const originalHeight = img.naturalHeight || img.height;
+
+      if (!originalWidth || !originalHeight) {
+        return { width: maxWidth, height: maxHeight };
+      }
+
+      const scale = Math.min(maxWidth / originalWidth, maxHeight / originalHeight);
+
+      return {
+        width: originalWidth * scale,
+        height: originalHeight * scale,
+      };
+    };
+
+    const addContainedImage = (
+      img: HTMLImageElement,
+      format: 'PNG' | 'JPEG',
+      x: number,
+      y: number,
+      maxWidth: number,
+      maxHeight: number
+    ) => {
+      const { width, height } = getContainedDimensions(img, maxWidth, maxHeight);
+      const offsetX = x + (maxWidth - width) / 2;
+      const offsetY = y + (maxHeight - height) / 2;
+
+      doc.addImage(img, format, offsetX, offsetY, width, height);
+    };
+
     try {
       const [ugarteImg, mercedesImg, firmaImg] = await Promise.all([
         loadImage('/logos/ugarte-logo.png'),
@@ -143,10 +178,10 @@ export function ProformaGenerator() {
       
       // ========== HEADER ==========
       if (ugarteImg) {
-        doc.addImage(ugarteImg, 'PNG', 15, 8, 45, 22);
+        addContainedImage(ugarteImg, 'PNG', 15, 8, 45, 22);
       }
       if (mercedesImg) {
-        doc.addImage(mercedesImg, 'PNG', pageWidth - 70, 6, 55, 25);
+        addContainedImage(mercedesImg, 'PNG', pageWidth - 70, 6, 55, 25);
       }
       
       // Línea horizontal bajo logos
@@ -322,7 +357,7 @@ export function ProformaGenerator() {
       
       // ========== FIRMA (lado derecho) ==========
       if (firmaImg) {
-        doc.addImage(firmaImg, 'PNG', pageWidth - 65, finalY + 35, 50, 32);
+        addContainedImage(firmaImg, 'PNG', pageWidth - 65, finalY + 35, 50, 32);
       }
       
       // ========== PIE - LEYENDA ==========
