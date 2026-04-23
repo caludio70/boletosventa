@@ -134,14 +134,14 @@ export function ProformaGenerator() {
     try {
       // Cargar imágenes
       const [ugarteImg, mercedesImg, firmaImg] = await Promise.all([
-        loadImage('/logos/ugarte-logo.jpg'),
+        loadImage('/logos/ugarte-logo.png'),
         loadImage('/logos/mercedes-benz-star.png'),
         loadImage('/logos/jose-viegas-firma.png')
       ]);
       
       // ========== HEADER ==========
       // Logo Ugarte (izquierda)
-      doc.addImage(ugarteImg, 'JPEG', 15, 10, 55, 18);
+      doc.addImage(ugarteImg, 'PNG', 15, 8, 45, 22);
       // Logo Mercedes-Benz (derecha) - proporción corregida
       doc.addImage(mercedesImg, 'PNG', pageWidth - 70, 6, 55, 25);
       
