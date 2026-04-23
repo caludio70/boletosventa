@@ -121,18 +121,20 @@ export function ProformaGenerator() {
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
     
-    // Cargar imágenes
-    const loadImage = (src: string): Promise<HTMLImageElement> => {
-      return new Promise((resolve, reject) => {
+    // Cargar imágenes (no falla si alguna no carga)
+    const loadImage = (src: string): Promise<HTMLImageElement | null> => {
+      return new Promise((resolve) => {
         const img = new Image();
         img.onload = () => resolve(img);
-        img.onerror = reject;
+        img.onerror = (e) => {
+          console.warn(`No se pudo cargar imagen: ${src}`, e);
+          resolve(null);
+        };
         img.src = src;
       });
     };
 
     try {
-      // Cargar imágenes
       const [ugarteImg, mercedesImg, firmaImg] = await Promise.all([
         loadImage('/logos/ugarte-logo.png'),
         loadImage('/logos/mercedes-benz-star.png'),
@@ -140,10 +142,12 @@ export function ProformaGenerator() {
       ]);
       
       // ========== HEADER ==========
-      // Logo Ugarte (izquierda)
-      doc.addImage(ugarteImg, 'PNG', 15, 8, 45, 22);
-      // Logo Mercedes-Benz (derecha) - proporción corregida
-      doc.addImage(mercedesImg, 'PNG', pageWidth - 70, 6, 55, 25);
+      if (ugarteImg) {
+        doc.addImage(ugarteImg, 'PNG', 15, 8, 45, 22);
+      }
+      if (mercedesImg) {
+        doc.addImage(mercedesImg, 'PNG', pageWidth - 70, 6, 55, 25);
+      }
       
       // Línea horizontal bajo logos
       doc.setDrawColor(0, 0, 0);
@@ -317,7 +321,9 @@ export function ProformaGenerator() {
       doc.text(plazoEntrega, 53, finalY + 54);
       
       // ========== FIRMA (lado derecho) ==========
-      doc.addImage(firmaImg, 'PNG', pageWidth - 65, finalY + 35, 50, 32);
+      if (firmaImg) {
+        doc.addImage(firmaImg, 'PNG', pageWidth - 65, finalY + 35, 50, 32);
+      }
       
       // ========== PIE - LEYENDA ==========
       doc.setFont('helvetica', 'italic');
