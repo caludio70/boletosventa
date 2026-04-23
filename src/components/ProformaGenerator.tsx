@@ -321,7 +321,9 @@ export function ProformaGenerator() {
       doc.text(plazoEntrega, 53, finalY + 54);
       
       // ========== FIRMA (lado derecho) ==========
-      doc.addImage(firmaImg, 'PNG', pageWidth - 65, finalY + 35, 50, 32);
+      if (firmaImg) {
+        doc.addImage(firmaImg, 'PNG', pageWidth - 65, finalY + 35, 50, 32);
+      }
       
       // ========== PIE - LEYENDA ==========
       doc.setFont('helvetica', 'italic');
